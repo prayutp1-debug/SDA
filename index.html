@@ -260,6 +260,8 @@ td.day{text-align:center;padding:6px 2px;font-size:11px;min-width:26px;max-width
   <div class="field"><label for="pwNew">รหัสผ่านใหม่</label><input id="pwNew" type="password" autocomplete="new-password"></div>
   <div class="field"><label for="pwNew2">ยืนยันรหัสผ่านใหม่</label><input id="pwNew2" type="password" autocomplete="new-password"></div>
   <div class="msg" id="pwMsg"></div>
+  <div id="pwDiag"></div>
+  <button type="button" class="linkbtn" id="pwTest">ทดสอบการเชื่อมต่อกับ Apps Script</button>
   <div class="pwbtns">
     <button type="button" class="btn-ghost" id="pwCancel">ยกเลิก</button>
     <button type="button" class="btn-primary" id="pwSave">บันทึกรหัสผ่านใหม่</button>
@@ -978,13 +980,34 @@ function renderTabbar(){
 
 /* ---------- ดาวน์โหลดเป็น Excel ให้หน้าตาเหมือนบนหน้าจอ ---------- */
 var THEME_HEX={sda:'FF2563EB',training:'FF7C3AED',gps:'FF0D9488',reg:'FFD97706'};
+/* คอลัมน์รหัสต่าง ๆ — บังคับเป็นข้อความเสมอ ไม่ให้ Excel มองเป็นตัวเลข */
+var TEXT_COLS = ['เบอร์รถ','รหัส จบส.','จบส.','vendor','เลข vendor','เลข vender',
+                 'ทะเบียนรถ','รหัส รง.','รหัสโรงงาน','fleet_type_no'];
+function isTextCol(c){
+  var a=normKey(c.label), b=normKey(c.key);
+  for(var i=0;i<TEXT_COLS.length;i++){
+    var k=normKey(TEXT_COLS[i]);
+    if(a===k||b===k) return true;
+  }
+  return false;
+}
 function cellValue(c,r){
   var t = c.text? c.text(r) : (c.val? c.val(r) : r[c.key]);
+  if(isTextCol(c)) return txt(t);
   if(c.numType==='percent'||c.numType==='number'){
     var n=(typeof t==='number')?t:num(t); return (n==null||isNaN(n))?'':n;
   }
   if(c.cls==='num'){ var n2=num(txt(t)); return n2==null?txt(t):n2; }
   return txt(t);
+}
+/* จำนวนเต็ม -> 1,234 (ไม่มีจุด) ; มีทศนิยม -> 1,234.5 ตามจำนวนหลักจริง (สูงสุด 3) */
+function numFormatFor(v){
+  if(v==null||isNaN(v)) return '#,##0';
+  var r=Math.round(v*1000)/1000;
+  if(r===Math.round(r)) return '#,##0';
+  var s=String(Math.abs(r)), dot=s.indexOf('.');
+  var dec=dot<0?0:Math.min(s.length-dot-1,3);
+  return '#,##0.'+new Array(dec+1).join('0');
 }
 function filterSummary(){
   var cfg=TABS[STATE.tab], parts=[];
@@ -1062,8 +1085,9 @@ function exportExcel(){
           var align = c.align || ((c.cls==='num')?'right':((c.cls==='mid'||c.cls==='day')?'center':'left'));
           cell.alignment={vertical:'middle',horizontal:align};
           cell.border=border;
-          if(c.numType==='percent') cell.numFmt='0.0%';
-          else if(typeof cell.value==='number') cell.numFmt='#,##0.##';
+          if(isTextCol(c)) cell.numFmt='@';
+          else if(c.numType==='percent') cell.numFmt='0.0%';
+          else if(typeof cell.value==='number') cell.numFmt=numFormatFor(cell.value);
         });
         row.height=18;
       });
@@ -1178,6 +1202,7 @@ function openPw(){
   $('pwUser').value = SESSION? SESSION.code : $('u').value.trim();
   $('pwOld').value=''; $('pwNew').value=''; $('pwNew2').value='';
   pwMsg('','');
+  pwDiag('');
   if(!API_URL) pwMsg('ยังไม่ได้ตั้งค่า API_URL ในไฟล์ index.html จึงยังเปลี่ยนรหัสผ่านไม่ได้','err');
   $('pwmodal').style.display='flex';
   setTimeout(function(){ ($('pwUser').value?$('pwOld'):$('pwUser')).focus(); },50);
@@ -1185,6 +1210,26 @@ function openPw(){
 $('pwOpenLogin').addEventListener('click',openPw);
 $('pwOpenApp').addEventListener('click',openPw);
 $('pwCancel').addEventListener('click',function(){ $('pwmodal').style.display='none'; });
+function pwDiag(html){ $('pwDiag').innerHTML = html? '<div style="margin-top:9px;font-size:12px;color:#64748b;line-height:1.7">'+html+'</div>' : ''; }
+function pingLink(){
+  return 'เปิดลิงก์นี้ในแท็บใหม่เพื่อดูว่า Apps Script ตอบอะไร: <a href="'+esc(API_URL)+'?action=ping" target="_blank" rel="noopener">ทดสอบ /exec?action=ping</a>';
+}
+$('pwTest').addEventListener('click',function(){
+  if(!API_URL){ pwMsg('ยังไม่ได้ตั้งค่า API_URL','err'); return; }
+  pwMsg('กำลังทดสอบการเชื่อมต่อ…','info'); pwDiag('');
+  api({action:'whoami'}).then(function(res){
+    if(res&&res.ok){
+      pwMsg('เชื่อมต่อ Apps Script ได้','info');
+      pwDiag('สคริปต์รันด้วยบัญชี: <b>'+esc(res.effectiveUser||'-')+'</b><br>ชีตที่เขียน: <b>'+esc(res.sheet||'-')+'</b> ('+nf(res.rows||0)+' แถว)<br>สิทธิ์เขียนชีต: <b>'+(res.canEdit?'เขียนได้':'เขียนไม่ได้')+'</b>');
+    } else {
+      pwMsg('Apps Script ตอบกลับมาแต่มีข้อผิดพลาด','err');
+      pwDiag(esc((res&&res.message)||JSON.stringify(res))+'<br>'+pingLink());
+    }
+  }).catch(function(err){
+    pwMsg('เรียก Apps Script ไม่ได้ ('+err.message+')','err');
+    pwDiag('สาเหตุที่พบบ่อย: ยังไม่ได้ Deploy เป็น <b>New version</b> หลังวางโค้ดใหม่, ตั้ง Who has access ไม่ใช่ <b>Anyone</b>, หรือยังไม่ได้กด Authorize สคริปต์<br>'+pingLink());
+  });
+});
 $('pwmodal').addEventListener('click',function(e){ if(e.target===this) this.style.display='none'; });
 $('pwSave').addEventListener('click',function(){
   var u=$('pwUser').value.trim(), o=$('pwOld').value, n=$('pwNew').value, n2=$('pwNew2').value;
@@ -1195,7 +1240,16 @@ $('pwSave').addEventListener('click',function(){
   $('pwSave').disabled=true; $('pwSave').textContent='กำลังบันทึก…'; pwMsg('กำลังบันทึกลงกูเกิลชีต…','info');
   api({action:'changePassword',user:u,pass:o,newpass:n}).then(function(res){
     $('pwSave').disabled=false; $('pwSave').textContent='บันทึกรหัสผ่านใหม่';
-    if(!res||!res.ok){ pwMsg((res&&res.message)||'เปลี่ยนรหัสผ่านไม่สำเร็จ','err'); return; }
+    if(!res||!res.ok){
+      pwMsg((res&&res.message)||'เปลี่ยนรหัสผ่านไม่สำเร็จ','err');
+      pwDiag(res?('คำตอบจากเซิร์ฟเวอร์: '+esc(JSON.stringify(res))):pingLink());
+      return;
+    }
+    if(res.saved===false){
+      pwMsg('เซิร์ฟเวอร์รับคำสั่งแล้วแต่เขียนลงชีตไม่สำเร็จ','err');
+      pwDiag('ตรวจสอบว่าบัญชีที่ Deploy สคริปต์มีสิทธิ์แก้ไขชีต และชีตไม่ได้ถูกป้องกัน (Protected range)<br>คำตอบ: '+esc(JSON.stringify(res)));
+      return;
+    }
     var row=USERS.filter(function(x){ return normUser(x.user)===normUser(u); })[0];
     if(row) row.pass=n;
     var saved=localStorage.getItem(LS_KEY);
@@ -1205,9 +1259,18 @@ $('pwSave').addEventListener('click',function(){
         if(normUser(o2.u)===normUser(u)) localStorage.setItem(LS_KEY, btoa(unescape(encodeURIComponent(JSON.stringify({u:o2.u,p:n})))));
       }catch(e){}
     }
-    pwMsg('เปลี่ยนรหัสผ่านเรียบร้อย ใช้รหัสใหม่ได้ทันทีกับทุกเว็บแอปที่ใช้รายชื่อผู้ใช้ชุดนี้','info');
+    pwMsg('เปลี่ยนรหัสผ่านเรียบร้อย กำลังตรวจสอบซ้ำกับชีต…','info');
     $('pwOld').value=''; $('pwNew').value=''; $('pwNew2').value='';
-    setTimeout(function(){ $('pwmodal').style.display='none'; },2200);
+    api({action:'login',user:u,pass:n}).then(function(chk){
+      if(chk&&chk.ok){
+        pwMsg('เปลี่ยนรหัสผ่านเรียบร้อย ตรวจสอบกับชีตแล้วใช้รหัสใหม่ได้ทันที','info');
+        pwDiag('');
+        setTimeout(function(){ $('pwmodal').style.display='none'; },2200);
+      } else {
+        pwMsg('บันทึกแล้วแต่ตรวจสอบซ้ำไม่ผ่าน กรุณาเปิดกูเกิลชีตตรวจสอบ','err');
+        pwDiag(esc(JSON.stringify(chk)));
+      }
+    }).catch(function(){ pwDiag('ตรวจสอบซ้ำไม่สำเร็จ แต่คำสั่งบันทึกสำเร็จแล้ว'); });
   }).catch(function(err){
     $('pwSave').disabled=false; $('pwSave').textContent='บันทึกรหัสผ่านใหม่';
     pwMsg('เชื่อมต่อ Apps Script ไม่ได้ ('+err.message+') — ตรวจสอบ API_URL และการตั้งค่า Deploy เป็น Anyone','err');
