@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <style>
 :root{
   --bg:#eef2f8; --card:#ffffff; --line:#e3e8f0; --ink:#1e293b; --muted:#64748b;
@@ -232,7 +233,7 @@ td.day{text-align:center;padding:6px 2px;font-size:11px;min-width:26px;max-width
     <div class="filters" id="filters"></div>
     <div class="filter-actions">
       <button class="btn-ghost" id="clearBtn">ล้างตัวกรอง</button>
-      <button class="btn-ghost" id="csvBtn">ดาวน์โหลด CSV</button>
+      <button class="btn-ghost" id="xlsxBtn">ดาวน์โหลด Excel</button>
       <span class="count-note" id="countNote"></span>
     </div>
   </section>
@@ -506,7 +507,7 @@ function api(params){
     if(!API_URL) return reject(new Error('ยังไม่ได้ตั้งค่า API_URL'));
     var cb='__api_'+Math.random().toString(36).slice(2);
     var s=document.createElement('script');
-    var to=setTimeout(function(){ done(); reject(new Error('หมดเวลาเชื่อมต่อ')); },20000);
+    var to=setTimeout(function(){ done(); reject(new Error('หมดเวลาเชื่อมต่อ')); },10000);
     function done(){ clearTimeout(to); try{delete window[cb];}catch(e){window[cb]=undefined;} if(s.parentNode) s.parentNode.removeChild(s); }
     window[cb]=function(res){ done(); resolve(res||{}); };
     var q=Object.keys(params).map(function(k){ return encodeURIComponent(k)+'='+encodeURIComponent(params[k]); }).join('&');
@@ -624,10 +625,12 @@ function sortRows(rows,cols){
     return String(txt(va)).localeCompare(String(txt(vb)),'th')*d;
   });
 }
+var LAST={rows:[],cols:[]};
 function drawTable(rows,cols,extraHead){
   var wrap=$('tablewrap');
-  if(!rows.length){ wrap.innerHTML='<div class="empty">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</div>'; $('pager').innerHTML=''; return; }
   rows=sortRows(rows,cols);
+  LAST={rows:rows,cols:cols};
+  if(!rows.length){ wrap.innerHTML='<div class="empty">ไม่พบข้อมูลตามเงื่อนไขที่เลือก</div>'; $('pager').innerHTML=''; return; }
   var total=rows.length, size=STATE.size===0?total:STATE.size,
       pages=Math.max(1,Math.ceil(total/size));
   if(STATE.page>pages) STATE.page=pages;
@@ -730,7 +733,10 @@ function renderSDA(rows){
       {key:'cars',label:'จำนวนรถ',cls:'num'},
       {key:'work',label:'วันทำงาน',cls:'num',val:function(r){return Math.round(r.work);}},
       {key:'use',label:'ใช้ SDA (วัน)',cls:'num',val:function(r){return Math.round(r.use*100)/100;}},
-      {key:'pct',label:'% ใช้ SDA',html:function(r){
+      {key:'pct',label:'% ใช้ SDA',numType:'percent',width:12,
+     text:function(r){ return r.pct==null?'':r.pct; },
+     fontColor:function(r){ var p=r.pct; return p==null?null:(p>=0.9?'FF059669':(p>=0.8?'FFD97706':'FFDC2626')); },
+     html:function(r){
          var p=r.pct==null?0:r.pct, c=p>=0.9?'#059669':(p>=0.8?'#d97706':'#dc2626');
          return '<td class="num" data-k="% ใช้ SDA" data-v="'+(r.pct==null?'-':pct(r.pct))+'">'+
            '<div style="display:flex;align-items:center;gap:8px;justify-content:flex-end">'+
@@ -749,16 +755,23 @@ function renderSDA(rows){
   ]);
   for(var d=1;d<=31;d++){
     (function(d){
-      cols.push({key:'d'+d,label:String(d),cls:'day',sortable:false,html:function(r){
-        var v=r[String(d)], n=num(v);
-        if(v===''||v==null||n==null) return '<td class="day dn">·</td>';
-        var c= n>=1?'d1':(n>0?'d5':'d0');
-        return '<td class="day '+c+'">'+(n===1?'1':(n===0?'0':String(n)))+'</td>';
-      }});
+      cols.push({key:'d'+d,label:String(d),cls:'day',sortable:false,width:4,align:'center',numType:'number',
+        html:function(r){
+          var v=r[String(d)], n=num(v);
+          if(v===''||v==null||n==null) return '<td class="day dn">·</td>';
+          var c= n>=1?'d1':(n>0?'d5':'d0');
+          return '<td class="day '+c+'">'+(n===1?'1':(n===0?'0':String(n)))+'</td>';
+        },
+        text:function(r){ var n=num(r[String(d)]); return n==null?'':n; },
+        fill:function(r){ var n=num(r[String(d)]); return n==null?null:(n>=1?'FFD1FAE5':(n>0?'FFFEF3C7':'FFFEE2E2')); },
+        fontColor:function(r){ var n=num(r[String(d)]); return n==null?null:(n>=1?'FF065F46':(n>0?'FF92400E':'FF991B1B')); }});
     })(d);
   }
   cols.push({key:'__work',label:'วันทำงาน',cls:'num'});
-  cols.push({key:'__pct',label:'% ใช้ SDA',html:function(r){
+  cols.push({key:'__pct',label:'% ใช้ SDA',numType:'percent',width:11,
+    text:function(r){ return r.__pct==null?'':r.__pct; },
+    fontColor:function(r){ var p=r.__pct; return p==null?null:(p>=0.9?'FF059669':(p>=0.8?'FFD97706':'FFDC2626')); },
+    html:function(r){
     var p=r.__pct, c=p==null?'#94a3b8':(p>=0.9?'#059669':(p>=0.8?'#d97706':'#dc2626'));
     return '<td class="num" data-k="% ใช้ SDA" data-v="'+(p==null?'-':pct(p))+'"><b style="color:'+c+'">'+(p==null?'-':pct(p))+'</b></td>';
   }});
@@ -824,7 +837,11 @@ function renderTraining(rows){
     {key:'เบอร์รถ',label:'เบอร์รถ',cls:'mid'},
     {key:'รหัส จบส.',label:'รหัส จบส.',cls:'mid'},
     {key:'ชื่อ-นามสกุล',label:'ชื่อ-นามสกุล'},
-    {key:'__catLabel',label:'สถานะ',html:function(r){
+    {key:'__catLabel',label:'สถานะ',align:'center',
+     text:function(r){ return r.__catLabel; },
+     fill:function(r){ return {pass:'FFD1FAE5',fail:'FFFEE2E2',pending:'FFFEF3C7',nojbs:'FFF1F5F9'}[r.__cat]||null; },
+     fontColor:function(r){ return {pass:'FF065F46',fail:'FF991B1B',pending:'FF92400E',nojbs:'FF475569'}[r.__cat]||null; },
+     html:function(r){
        var m={pass:'b-ok',fail:'b-bad',pending:'b-warn',nojbs:'b-mute'};
        return '<td class="mid" data-k="สถานะ" data-v="'+esc(r.__catLabel)+'"><span class="badge '+m[r.__cat]+'">'+esc(r.__catLabel)+'</span></td>';
     }},
@@ -873,7 +890,11 @@ function renderGPS(rows){
     {key:'ทะเบียนรถ',label:'ทะเบียนรถ',cls:'mid'},
     {key:'ประเภทรถ',label:'ประเภทรถ',cls:'mid'},
     {key:'GPS Vendor',label:'GPS Vendor',cls:'mid'},
-    {key:'สถานะรถ',label:'สถานะ',html:function(r){
+    {key:'สถานะรถ',label:'สถานะ',align:'center',
+     text:function(r){ return txt(r['สถานะรถ']); },
+     fill:function(r){ var s=txt(r['สถานะรถ']); return s==='A'?'FFD1FAE5':(s==='S'?'FFFEF3C7':'FFF1F5F9'); },
+     fontColor:function(r){ var s=txt(r['สถานะรถ']); return s==='A'?'FF065F46':(s==='S'?'FF92400E':'FF475569'); },
+     html:function(r){
        var s=txt(r['สถานะรถ']);
        return '<td class="mid" data-k="สถานะ" data-v="'+esc(s)+'"><span class="badge '+(s==='A'?'b-ok':(s==='S'?'b-warn':'b-mute'))+'">'+esc(s||'-')+'</span></td>';
     }},
@@ -910,7 +931,11 @@ function renderReg(rows){
     {key:'ยี่ห้อรถ',label:'ยี่ห้อรถ',cls:'mid'},
     {key:'ยี่ห้อโม่',label:'ยี่ห้อโม่',cls:'mid'},
     {key:'ประเภทป้ายทะเบียน',label:'ป้ายทะเบียน',cls:'mid'},
-    {key:'ผลตรวจรถอายุ>15ปี',label:'ผลตรวจ >15 ปี',html:function(r){
+    {key:'ผลตรวจรถอายุ>15ปี',label:'ผลตรวจ >15 ปี',align:'center',
+     text:function(r){ return txt(r['ผลตรวจรถอายุ>15ปี']); },
+     fill:function(r){ var v=txt(r['ผลตรวจรถอายุ>15ปี']); return /ผ่าน/.test(v)?'FFD1FAE5':(/ยังไม่ส่ง/.test(v)?'FFFEE2E2':'FFF1F5F9'); },
+     fontColor:function(r){ var v=txt(r['ผลตรวจรถอายุ>15ปี']); return /ผ่าน/.test(v)?'FF065F46':(/ยังไม่ส่ง/.test(v)?'FF991B1B':'FF475569'); },
+     html:function(r){
        var v=txt(r['ผลตรวจรถอายุ>15ปี']), cls= /ผ่าน/.test(v)?'b-ok':(/ยังไม่ส่ง/.test(v)?'b-bad':'b-mute');
        return '<td class="mid" data-k="ผลตรวจ >15 ปี" data-v="'+esc(v)+'"><span class="badge '+cls+'">'+esc(v||'-')+'</span></td>';
     }}
@@ -951,31 +976,125 @@ function renderTabbar(){
   });
 }
 
-/* CSV export ของข้อมูลที่กรองอยู่ */
-$('csvBtn').addEventListener('click',function(){
-  var rows=applyFilters(baseRows());
+/* ---------- ดาวน์โหลดเป็น Excel ให้หน้าตาเหมือนบนหน้าจอ ---------- */
+var THEME_HEX={sda:'FF2563EB',training:'FF7C3AED',gps:'FF0D9488',reg:'FFD97706'};
+function cellValue(c,r){
+  var t = c.text? c.text(r) : (c.val? c.val(r) : r[c.key]);
+  if(c.numType==='percent'||c.numType==='number'){
+    var n=(typeof t==='number')?t:num(t); return (n==null||isNaN(n))?'':n;
+  }
+  if(c.cls==='num'){ var n2=num(txt(t)); return n2==null?txt(t):n2; }
+  return txt(t);
+}
+function filterSummary(){
+  var cfg=TABS[STATE.tab], parts=[];
+  (cfg.period||[]).concat(cfg.filters).forEach(function(k){ if(STATE.f[k]) parts.push(k+': '+STATE.f[k]); });
+  if(STATE.q) parts.push('ค้นหา: '+STATE.q);
   if(STATE.tab==='training'&&STATE.sub!=='all'){
-    rows=rows.filter(function(r){ return r.__cat===STATE.sub; });
+    var m={pass:'ผ่าน',fail:'ไม่ผ่าน',pending:'ยังไม่อบรม',nojbs:'ไม่มี จบส.'};
+    parts.push('สถานะ: '+(m[STATE.sub]||STATE.sub));
     if(STATE.sub==='pending'){
-      if(STATE.sub2!=='all') rows=rows.filter(function(r){ return r.__group===STATE.sub2; });
-      if(STATE.sub3!=='all') rows=rows.filter(function(r){ return r.__deadline===STATE.sub3; });
+      if(STATE.sub2!=='all') parts.push('กลุ่ม: '+STATE.sub2);
+      if(STATE.sub3!=='all') parts.push('กำหนดอบรมภายใน: '+STATE.sub3);
     }
   }
-  if(!rows.length) return;
-  var keys=Object.keys(rows[0]).filter(function(k){ return k.indexOf('__')!==0; });
-  if(STATE.tab==='training') keys=keys.concat(['__catLabel','__group','__deadline']);
-  var lines=[keys.join(',')];
-  rows.forEach(function(r){
-    lines.push(keys.map(function(k){
-      var v=txt(r[k]); return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;
-    }).join(','));
-  });
-  var blob=new Blob(['\uFEFF'+lines.join('\n')],{type:'text/csv;charset=utf-8;'});
-  var a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=TABS[STATE.tab].label.replace(/\s/g,'_')+'_'+new Date().toISOString().slice(0,10)+'.csv';
-  a.click(); URL.revokeObjectURL(a.href);
-});
+  if(STATE.tab==='sda'&&STATE.view!=='row') parts.push('มุมมอง: สรุปตาม'+STATE.view);
+  return parts.length? parts.join('  ·  ') : 'ไม่ได้กรอง (ข้อมูลทั้งหมดที่เข้าถึงได้)';
+}
+function exportExcel(){
+  if(!window.ExcelJS){ alert('โหลดไลบรารีสร้างไฟล์ Excel ไม่สำเร็จ — ตรวจสอบการเชื่อมต่ออินเทอร์เน็ตแล้วลองใหม่'); return; }
+  var cols=LAST.cols, rows=LAST.rows;
+  if(!rows.length){ alert('ไม่มีข้อมูลให้ดาวน์โหลด'); return; }
+  loader(true,'กำลังสร้างไฟล์ Excel ('+nf(rows.length)+' แถว)…');
+
+  setTimeout(function(){
+    try{
+      var tabLabel=TABS[STATE.tab].label, hex=THEME_HEX[STATE.tab]||'FF2563EB';
+      var wb=new ExcelJS.Workbook();
+      wb.creator='SDA & อบรม จบส.'; wb.created=new Date();
+      var ws=wb.addWorksheet(tabLabel.replace(/[\\\/\?\*\[\]:]/g,' '),{
+        views:[{state:'frozen',ySplit:4}],
+        pageSetup:{orientation:'landscape',fitToPage:true,fitToWidth:1,fitToHeight:0}
+      });
+      var last=cols.length, FONT='Tahoma';
+
+      ws.mergeCells(1,1,1,last);
+      var t1=ws.getCell(1,1);
+      t1.value=tabLabel+' — SDA & อบรม จบส.';
+      t1.font={name:FONT,size:14,bold:true,color:{argb:hex}};
+      ws.getRow(1).height=22;
+
+      ws.mergeCells(2,1,2,last);
+      var t2=ws.getCell(2,1);
+      t2.value=filterSummary();
+      t2.font={name:FONT,size:9,color:{argb:'FF64748B'}};
+
+      ws.mergeCells(3,1,3,last);
+      var t3=ws.getCell(3,1);
+      t3.value='ผู้ใช้: '+(SESSION?SESSION.name:'-')+'   ·   สิทธิ์: '+(SESSION&&SESSION.all?'SCG (ทุกผู้รับเหมา)':'ผู้รับเหมา')+
+               '   ·   จำนวน '+nf(rows.length)+' รายการ   ·   สร้างเมื่อ '+new Date().toLocaleString('th-TH');
+      t3.font={name:FONT,size:9,color:{argb:'FF64748B'}};
+
+      var thin={style:'thin',color:{argb:'FFB8C4D9'}};
+      var border={top:thin,left:thin,bottom:thin,right:thin};
+
+      var hrow=ws.getRow(4);
+      cols.forEach(function(c,i){
+        var cell=hrow.getCell(i+1);
+        cell.value=c.label;
+        cell.font={name:FONT,size:10,bold:true,color:{argb:'FFFFFFFF'}};
+        cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:hex}};
+        cell.alignment={vertical:'middle',horizontal:'center',wrapText:true};
+        cell.border=border;
+      });
+      hrow.height=26;
+
+      rows.forEach(function(r,ri){
+        var row=ws.getRow(5+ri);
+        cols.forEach(function(c,ci){
+          var cell=row.getCell(ci+1);
+          cell.value=cellValue(c,r);
+          var fill=c.fill? c.fill(r) : null;
+          if(!fill && ri%2===1) fill='FFF7F9FC';
+          if(fill) cell.fill={type:'pattern',pattern:'solid',fgColor:{argb:fill}};
+          var fc=c.fontColor? c.fontColor(r) : null;
+          cell.font={name:FONT,size:10,color:{argb:fc||'FF1E293B'},bold:!!fc};
+          var align = c.align || ((c.cls==='num')?'right':((c.cls==='mid'||c.cls==='day')?'center':'left'));
+          cell.alignment={vertical:'middle',horizontal:align};
+          cell.border=border;
+          if(c.numType==='percent') cell.numFmt='0.0%';
+          else if(typeof cell.value==='number') cell.numFmt='#,##0.##';
+        });
+        row.height=18;
+      });
+
+      cols.forEach(function(c,i){
+        var w=c.width;
+        if(!w){
+          var len=String(c.label).length;
+          for(var k=0;k<Math.min(rows.length,300);k++){
+            var v=cellValue(c,rows[k]); len=Math.max(len,String(v==null?'':v).length);
+          }
+          w=Math.min(Math.max(len+2,7),34);
+        }
+        ws.getColumn(i+1).width=w;
+      });
+
+      ws.autoFilter={from:{row:4,column:1},to:{row:4+rows.length,column:last}};
+
+      wb.xlsx.writeBuffer().then(function(buf){
+        var blob=new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+        var a=document.createElement('a');
+        a.href=URL.createObjectURL(blob);
+        a.download=tabLabel.replace(/\s/g,'_')+'_'+new Date().toISOString().slice(0,10)+'.xlsx';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(function(){ URL.revokeObjectURL(a.href); },4000);
+        loader(false);
+      }).catch(function(err){ loader(false); alert('สร้างไฟล์ Excel ไม่สำเร็จ: '+err.message); });
+    }catch(err){ loader(false); alert('สร้างไฟล์ Excel ไม่สำเร็จ: '+err.message); }
+  },50);
+}
+$('xlsxBtn').addEventListener('click',exportExcel);
 $('clearBtn').addEventListener('click',function(){
   STATE.f={}; STATE.q=''; STATE.page=1; STATE.sort=null; defaultPeriod(); render();
 });
