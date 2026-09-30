@@ -555,7 +555,7 @@ var TABS={
         search:['เบอร์รถ','ทะเบียนรถ','ผู้รับเหมา','โรงงาน'],
         period:['ปี','เดือน'] },
   reg:{ label:'ทะเบียนรถ', sheet:'registration', accent:'--reg',
-        filters:['กิจการ','ภาค','แผนก','โรงงาน','ผู้รับเหมา'],
+        filters:['กิจการ','ภาค','แผนก','โรงงาน','ผู้รับเหมา','Status'],
         search:['เบอร์รถ','ทะเบียนรถ','ผู้รับเหมา','โรงงาน','ยี่ห้อรถ'],
         period:['Year','Month'] }
 };
@@ -913,20 +913,25 @@ function renderGPS(rows){
   ]);
 }
 
+function regStatus(r){ return txt(pick(r,['Status','สถานะ','สถานะรถ'])).toUpperCase(); }
+function regStatusLabel(s){ return s==='A'?'Active':(s==='S'?'หยุดวิ่งชั่วคราว':(s||'-')); }
 function renderReg(rows){
-  var ages=[], old=0, pending=0;
+  var ages=[], old=0, act=0, stop=0;
   rows.forEach(function(r){
     var a=num(r['อายุรถโม่']); if(a!=null) ages.push(a);
-    if(a!=null&&a>15){ old++; if(/ยังไม่ส่ง/.test(txt(r['ผลตรวจรถอายุ>15ปี']))) pending++; }
+    if(a!=null&&a>15) old++;
+    var s=regStatus(r);
+    if(s==='A') act++; else if(s==='S') stop++;
   });
   var avg=ages.length? ages.reduce(function(s,a){return s+a;},0)/ages.length : null;
   $('kpis').innerHTML =
     kpi('k-amber','จำนวนรถ',nf(rows.length),'คัน') +
+    kpi('k-green','Active',nf(act),rows.length?pct(act/rows.length)+' ของรถทั้งหมด':'') +
+    kpi('k-slate','หยุดวิ่งชั่วคราว',nf(stop),rows.length?pct(stop/rows.length)+' ของรถทั้งหมด':'') +
     kpi('k-blue','อายุรถเฉลี่ย',avg==null?'-':(Math.round(avg*10)/10)+' ปี','จากข้อมูลที่ระบุอายุ') +
-    kpi('k-slate','รถอายุเกิน 15 ปี',nf(old),rows.length?pct(old/rows.length)+' ของรถทั้งหมด':'') +
-    kpi('k-red','ยังไม่ส่งผลตรวจ',nf(pending),'คัน (รถเกิน 15 ปี)');
+    kpi('k-red','รถอายุเกิน 15 ปี',nf(old),rows.length?pct(old/rows.length)+' ของรถทั้งหมด':'');
   $('extra').innerHTML=''; $('subchips').innerHTML='';
-  $('legend').innerHTML='';
+  $('legend').innerHTML='<span>Status: A = Active (วิ่งงานปกติ) · S = หยุดวิ่งชั่วคราว</span>';
   drawTable(rows,[
     {key:'กิจการ',label:'กิจการ'},
     {key:'โรงงาน',label:'โรงงาน'},
@@ -940,13 +945,14 @@ function renderReg(rows){
     {key:'ยี่ห้อรถ',label:'ยี่ห้อรถ',cls:'mid'},
     {key:'ยี่ห้อโม่',label:'ยี่ห้อโม่',cls:'mid'},
     {key:'ประเภทป้ายทะเบียน',label:'ป้ายทะเบียน',cls:'mid'},
-    {key:'ผลตรวจรถอายุ>15ปี',label:'ผลตรวจ >15 ปี',align:'center',
-     text:function(r){ return txt(r['ผลตรวจรถอายุ>15ปี']); },
-     fill:function(r){ var v=txt(r['ผลตรวจรถอายุ>15ปี']); return /ผ่าน/.test(v)?'FFD1FAE5':(/ยังไม่ส่ง/.test(v)?'FFFEE2E2':'FFF1F5F9'); },
-     fontColor:function(r){ var v=txt(r['ผลตรวจรถอายุ>15ปี']); return /ผ่าน/.test(v)?'FF065F46':(/ยังไม่ส่ง/.test(v)?'FF991B1B':'FF475569'); },
+    {key:'Status',label:'สถานะ',align:'center',
+     val:function(r){ return regStatus(r); },
+     text:function(r){ return regStatusLabel(regStatus(r)); },
+     fill:function(r){ var s=regStatus(r); return s==='A'?'FFD1FAE5':(s==='S'?'FFFEF3C7':'FFF1F5F9'); },
+     fontColor:function(r){ var s=regStatus(r); return s==='A'?'FF065F46':(s==='S'?'FF92400E':'FF475569'); },
      html:function(r){
-       var v=txt(r['ผลตรวจรถอายุ>15ปี']), cls= /ผ่าน/.test(v)?'b-ok':(/ยังไม่ส่ง/.test(v)?'b-bad':'b-mute');
-       return '<td class="mid" data-k="ผลตรวจ >15 ปี" data-v="'+esc(v)+'"><span class="badge '+cls+'">'+esc(v||'-')+'</span></td>';
+       var s=regStatus(r), lbl=regStatusLabel(s), cls= s==='A'?'b-ok':(s==='S'?'b-warn':'b-mute');
+       return '<td class="mid" data-k="สถานะ" data-v="'+esc(lbl)+'"><span class="badge '+cls+'">'+esc(lbl)+'</span></td>';
     }}
   ]);
 }
