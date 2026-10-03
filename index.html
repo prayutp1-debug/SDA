@@ -555,7 +555,7 @@ var TABS={
         search:['เบอร์รถ','ทะเบียนรถ','ผู้รับเหมา','โรงงาน'],
         period:['ปี','เดือน'] },
   reg:{ label:'ทะเบียนรถ', sheet:'registration', accent:'--reg',
-        filters:['กิจการ','ภาค','แผนก','โรงงาน','ผู้รับเหมา','Status'],
+        filters:['กิจการ','ภาค','แผนก','โรงงาน','ผู้รับเหมา','ขนาดรถ','ประเภทรถ','Status'],
         search:['เบอร์รถ','ทะเบียนรถ','ผู้รับเหมา','โรงงาน','ยี่ห้อรถ'],
         period:['Year','Month'] }
 };
@@ -930,8 +930,26 @@ function renderReg(rows){
     kpi('k-slate','หยุดวิ่งชั่วคราว',nf(stop),rows.length?pct(stop/rows.length)+' ของรถทั้งหมด':'') +
     kpi('k-blue','อายุรถเฉลี่ย',avg==null?'-':(Math.round(avg*10)/10)+' ปี','จากข้อมูลที่ระบุอายุ') +
     kpi('k-red','รถอายุเกิน 15 ปี',nf(old),rows.length?pct(old/rows.length)+' ของรถทั้งหมด':'');
-  $('extra').innerHTML=''; $('subchips').innerHTML='';
-  $('legend').innerHTML='<span>Status: A = Active (วิ่งงานปกติ) · S = หยุดวิ่งชั่วคราว</span>';
+  var byType={};
+  rows.forEach(function(r){
+    var k=txt(pick(r,['ประเภทรถ','รถบัญชี']))||'(ไม่ระบุ)';
+    var sz=txt(r['ขนาดรถ'])||'-';
+    if(!byType[k]) byType[k]={n:0,size:sz};
+    byType[k].n++;
+  });
+  var tlist=Object.keys(byType).sort(function(a,b){ return byType[b].n-byType[a].n; });
+  var tmax=tlist.length? byType[tlist[0]].n : 1;
+  $('extra').innerHTML = tlist.length? ('<section class="panel"><h2>สัดส่วนตามประเภทรถ</h2>'+
+    tlist.map(function(k){
+      return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px">'+
+        '<div style="width:130px;font-size:13px">'+esc(k)+'</div>'+
+        '<div style="width:46px;font-size:11.5px;color:var(--muted)">'+esc(byType[k].size)+'</div>'+
+        '<div class="bar" style="flex:1"><i style="width:'+(byType[k].n/tmax*100).toFixed(0)+'%;background:#d97706"></i></div>'+
+        '<b style="width:72px;text-align:right;font-size:13px">'+nf(byType[k].n)+'</b></div>';
+    }).join('')+'</section>') : '';
+  $('subchips').innerHTML='';
+  $('legend').innerHTML='<span>Status: A = Active (วิ่งงานปกติ) · S = หยุดวิ่งชั่วคราว</span>'+
+    '<span>ประเภทรถ: ขนาดใหญ่ = รถจดทะเบียน / รถเสริม / รถสำรอง / รถนอก Fleet · ขนาดเล็ก = บัญชี1 / บัญชี2</span>';
   drawTable(rows,[
     {key:'กิจการ',label:'กิจการ'},
     {key:'โรงงาน',label:'โรงงาน'},
@@ -939,6 +957,7 @@ function renderReg(rows){
     {key:'เบอร์รถ',label:'เบอร์รถ',cls:'mid'},
     {key:'ทะเบียนรถ',label:'ทะเบียนรถ',cls:'mid'},
     {key:'ขนาดรถ',label:'ขนาด',cls:'mid'},
+    {key:'ประเภทรถ',label:'ประเภทรถ',cls:'mid',val:function(r){ return txt(pick(r,['ประเภทรถ','รถบัญชี'])); }},
     {key:'ขนาดโม่',label:'ขนาดโม่',cls:'num'},
     {key:'อายุรถโม่',label:'อายุรถ (ปี)',cls:'num'},
     {key:'GPS',label:'GPS',cls:'mid'},
