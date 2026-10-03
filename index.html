@@ -913,6 +913,13 @@ function renderGPS(rows){
   ]);
 }
 
+/* ลำดับที่ต้องการให้แสดงในกราฟสัดส่วนประเภทรถ (ใหญ่ก่อน แล้วค่อยเล็ก) */
+var TYPE_ORDER=['รถจดทะเบียน','รถเสริม','รถสำรอง','รถนอก Fleet','บัญชี1','บัญชี2'];
+function typeRank(k){
+  var n=normKey(k);
+  for(var i=0;i<TYPE_ORDER.length;i++){ if(normKey(TYPE_ORDER[i])===n) return i; }
+  return TYPE_ORDER.length;
+}
 function regStatus(r){ return txt(pick(r,['Status','สถานะ','สถานะรถ'])).toUpperCase(); }
 function regStatusLabel(s){ return s==='A'?'Active':(s==='S'?'หยุดวิ่งชั่วคราว':(s||'-')); }
 function renderReg(rows){
@@ -937,14 +944,18 @@ function renderReg(rows){
     if(!byType[k]) byType[k]={n:0,size:sz};
     byType[k].n++;
   });
-  var tlist=Object.keys(byType).sort(function(a,b){ return byType[b].n-byType[a].n; });
-  var tmax=tlist.length? byType[tlist[0]].n : 1;
+  var tlist=Object.keys(byType).sort(function(a,b){
+    var d=typeRank(a)-typeRank(b);
+    return d || (byType[b].n-byType[a].n);
+  });
+  var tmax=1;
+  tlist.forEach(function(k){ if(byType[k].n>tmax) tmax=byType[k].n; });
   $('extra').innerHTML = tlist.length? ('<section class="panel"><h2>สัดส่วนตามประเภทรถ</h2>'+
     tlist.map(function(k){
       return '<div style="display:flex;align-items:center;gap:10px;margin-bottom:7px">'+
         '<div style="width:130px;font-size:13px">'+esc(k)+'</div>'+
         '<div style="width:46px;font-size:11.5px;color:var(--muted)">'+esc(byType[k].size)+'</div>'+
-        '<div class="bar" style="flex:1"><i style="width:'+(byType[k].n/tmax*100).toFixed(0)+'%;background:#d97706"></i></div>'+
+        '<div class="bar" style="flex:1"><i style="width:'+(byType[k].n/tmax*100).toFixed(0)+'%;background:'+(byType[k].size==='เล็ก'?'#0ea5e9':'#d97706')+'"></i></div>'+
         '<b style="width:72px;text-align:right;font-size:13px">'+nf(byType[k].n)+'</b></div>';
     }).join('')+'</section>') : '';
   $('subchips').innerHTML='';
