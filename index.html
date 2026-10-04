@@ -161,14 +161,17 @@ td.day{text-align:center;padding:6px 2px;font-size:11px;min-width:26px;max-width
 .eye:hover{color:#334155;background:#f1f5f9}
 .eye:focus-visible{outline:2px solid var(--sda);outline-offset:1px}
 .eye svg{width:19px;height:19px;display:block}
+.linkrow{display:flex;align-items:center;justify-content:center;gap:10px;margin-top:11px}
+.linkrow .linkbtn{margin:0}
+.linksep{color:#cbd5e1}
 .linkbtn{display:block;margin:11px auto 0;background:none;border:0;color:#6366f1;font-size:13px;cursor:pointer;text-decoration:underline}
 .linkbtn:hover{color:#4338ca}
-#pwmodal{position:fixed;inset:0;z-index:58;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,.5);padding:18px}
-#pwmodal .box{background:#fff;border-radius:16px;padding:22px 22px 18px;max-width:390px;width:100%;box-shadow:0 20px 50px rgba(15,23,42,.32)}
-#pwmodal h3{margin:0 0 4px;font-size:18px;font-weight:700}
-#pwmodal .sub{margin:0 0 16px;font-size:12.5px;color:var(--muted);line-height:1.6}
-#pwmodal input{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;outline:none}
-#pwmodal input:focus{border-color:var(--sda);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+#pwmodal,#fgmodal{position:fixed;inset:0;z-index:58;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,.5);padding:18px}
+#fgmodal .box,#pwmodal .box{background:#fff;border-radius:16px;padding:22px 22px 18px;max-width:390px;width:100%;box-shadow:0 20px 50px rgba(15,23,42,.32)}
+#pwmodal h3,#fgmodal h3{margin:0 0 4px;font-size:18px;font-weight:700}
+#pwmodal .sub,#fgmodal .sub{margin:0 0 16px;font-size:12.5px;color:var(--muted);line-height:1.6}
+#pwmodal input,#fgmodal input{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;outline:none}
+#pwmodal input:focus,#fgmodal input:focus{border-color:var(--sda);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
 .pwbtns{display:flex;gap:9px;margin-top:14px}
 .pwbtns .btn-ghost{flex:1;padding:11px}
 .pwbtns .btn-primary{flex:1.6}
@@ -204,7 +207,11 @@ td.day{text-align:center;padding:6px 2px;font-size:11px;min-width:26px;max-width
       <span style="font-size:12px;color:#94a3b8" id="userStat">กำลังโหลดรายชื่อผู้ใช้…</span>
     </div>
     <button class="btn-primary" id="loginBtn" type="submit">เข้าสู่ระบบ</button>
-    <button type="button" class="linkbtn" id="pwOpenLogin">เปลี่ยนรหัสผ่าน</button>
+    <div class="linkrow">
+      <button type="button" class="linkbtn" id="pwOpenLogin">เปลี่ยนรหัสผ่าน</button>
+      <span class="linksep">·</span>
+      <button type="button" class="linkbtn" id="fgOpen">ลืมรหัสผ่าน?</button>
+    </div>
     <div class="msg" id="loginMsg"></div>
     <div id="filepick">
       <div class="field">
@@ -258,6 +265,19 @@ td.day{text-align:center;padding:6px 2px;font-size:11px;min-width:26px;max-width
 
 <div id="loader"><div class="box"><div class="spin"></div><div id="loadText">กำลังโหลดข้อมูล…</div></div></div>
 <div id="cellpop"><div class="box"><div class="k" id="popK"></div><div class="v" id="popV"></div></div></div>
+
+<div id="fgmodal"><div class="box">
+  <h3>ลืมรหัสผ่าน</h3>
+  <p class="sub">ระบบจะ<b>ตั้งรหัสผ่านใหม่</b>ให้อัตโนมัติ แล้วส่งไปยังอีเมลที่ลงทะเบียนไว้ในชีตผู้ใช้งาน<br>
+    <span style="color:#b45309">รหัสผ่านเดิมจะใช้ไม่ได้ทันที และมีผลกับทุกเว็บแอปที่ใช้บัญชีชุดนี้</span></p>
+  <div class="field"><label for="fgUser">ผู้ใช้งาน (รหัส Vendor หรือชื่อผู้ใช้)</label><input id="fgUser" type="text" autocomplete="username"></div>
+  <div class="msg" id="fgMsg"></div>
+  <div id="fgDiag"></div>
+  <div class="pwbtns">
+    <button type="button" class="btn-ghost" id="fgCancel">ยกเลิก</button>
+    <button type="button" class="btn-primary" id="fgSend">ตั้งรหัสใหม่และส่งอีเมล</button>
+  </div>
+</div></div>
 
 <div id="pwmodal"><div class="box">
   <h3>เปลี่ยนรหัสผ่าน</h3>
@@ -1172,7 +1192,7 @@ $('reloadBtn').addEventListener('click',function(){
              .catch(function(){ loader(false); alert('โหลดไฟล์ไม่สำเร็จ — ตรวจสอบว่าไฟล์ '+EXCEL_FILE+' อยู่โฟลเดอร์เดียวกับ index.html'); });
 });
 $('logoutBtn').addEventListener('click',function(){
-  localStorage.removeItem(LS_KEY); SESSION=null; $('pwmodal').style.display='none';
+  localStorage.removeItem(LS_KEY); SESSION=null; $('pwmodal').style.display='none'; $('fgmodal').style.display='none';
   $('app').style.display='none'; $('login').style.display='flex';
   $('p').value=''; resetEyes(['p']); setMsg('','');
 });
@@ -1252,6 +1272,46 @@ function openPw(){
   setTimeout(function(){ ($('pwUser').value?$('pwOld'):$('pwUser')).focus(); },50);
 }
 $('pwOpenLogin').addEventListener('click',openPw);
+
+/* ---------- ลืมรหัสผ่าน: ส่งรหัสไปอีเมลที่ลงทะเบียนไว้ ---------- */
+function fgMsg(t,cls){ var m=$('fgMsg'); m.className='msg'+(cls?' '+cls:''); m.textContent=t; if(!t) m.style.display='none'; }
+function fgDiag(html){ $('fgDiag').innerHTML = html? '<div style="margin-top:9px;font-size:12px;color:#64748b;line-height:1.7">'+html+'</div>' : ''; }
+$('fgOpen').addEventListener('click',function(){
+  $('fgUser').value=$('u').value.trim(); fgMsg('',''); fgDiag('');
+  if(!API_URL) fgMsg('ยังไม่ได้ตั้งค่า API_URL ในไฟล์ index.html จึงยังส่งอีเมลไม่ได้','err');
+  $('fgmodal').style.display='flex';
+  setTimeout(function(){ $('fgUser').focus(); },50);
+});
+$('fgCancel').addEventListener('click',function(){ $('fgmodal').style.display='none'; });
+$('fgmodal').addEventListener('click',function(e){ if(e.target===this) this.style.display='none'; });
+$('fgUser').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); $('fgSend').click(); } });
+$('fgSend').addEventListener('click',function(){
+  var u=$('fgUser').value.trim();
+  if(!u){ fgMsg('กรุณากรอกชื่อผู้ใช้งาน','err'); return; }
+  if(!API_URL){ fgMsg('ยังไม่ได้ตั้งค่า API_URL','err'); return; }
+  $('fgSend').disabled=true; $('fgSend').textContent='กำลังตั้งรหัสใหม่…'; fgMsg('กำลังตั้งรหัสผ่านใหม่และส่งอีเมล…','info'); fgDiag('');
+  api({action:'forgotPassword',user:u}).then(function(res){
+    $('fgSend').disabled=false; $('fgSend').textContent='ตั้งรหัสใหม่และส่งอีเมล';
+    if(!res||!res.ok){ fgMsg((res&&res.message)||'ตั้งรหัสผ่านใหม่ไม่สำเร็จ','err'); return; }
+    fgMsg('ตั้งรหัสผ่านใหม่และส่งอีเมลเรียบร้อยแล้ว','info');
+    fgDiag('ส่งไปที่: <b>'+esc((res.masked||[]).join(', '))+'</b>'+
+           (res.count>1?(' (ทั้งหมด '+res.count+' อีเมล)'):'')+
+           '<br>รหัสผ่านเดิมใช้ไม่ได้แล้ว เข้าสู่ระบบด้วยรหัสใหม่ในอีเมล แล้วกด "เปลี่ยนรหัสผ่าน" เพื่อตั้งรหัสที่จำได้เอง'+
+           '<br>ถ้าไม่พบอีเมลภายใน 2–3 นาที ลองตรวจในกล่อง Junk/Spam');
+    var saved=localStorage.getItem(LS_KEY);
+    if(saved){
+      try{
+        var o=JSON.parse(decodeURIComponent(escape(atob(saved))));
+        if(normUser(o.u)===normUser(u)) localStorage.removeItem(LS_KEY);
+      }catch(e){}
+    }
+    setTimeout(function(){ $('fgmodal').style.display='none'; },8000);
+  }).catch(function(err){
+    $('fgSend').disabled=false; $('fgSend').textContent='ตั้งรหัสใหม่และส่งอีเมล';
+    fgMsg('เรียก Apps Script ไม่ได้ ('+err.message+')','err');
+    fgDiag('ตรวจสอบว่า Deploy เวอร์ชันล่าสุดแล้ว และตั้ง Who has access เป็น Anyone');
+  });
+});
 $('pwOpenApp').addEventListener('click',openPw);
 $('pwCancel').addEventListener('click',function(){ $('pwmodal').style.display='none'; });
 function pwDiag(html){ $('pwDiag').innerHTML = html? '<div style="margin-top:9px;font-size:12px;color:#64748b;line-height:1.7">'+html+'</div>' : ''; }
