@@ -1301,8 +1301,11 @@ $('fgSend').addEventListener('click',function(){
     $('fgSend').disabled=false; $('fgSend').textContent='ตั้งรหัสใหม่และส่งอีเมล';
     if(!res||!res.ok){ fgMsg((res&&res.message)||'ตั้งรหัสผ่านใหม่ไม่สำเร็จ','err'); return; }
     fgMsg('ตั้งรหัสผ่านใหม่และส่งอีเมลเรียบร้อยแล้ว','info');
-    fgDiag('ส่งไปที่: <b>'+esc((res.masked||[]).join(', '))+'</b>'+
-           (res.count>1?(' (ทั้งหมด '+res.count+' อีเมล)'):'')+
+    var list=(res.emails&&res.emails.length)?res.emails:(res.masked||[]);
+    fgDiag((res.name?('ผู้ใช้งาน: <b>'+esc(res.name)+'</b> ('+esc(res.account||'')+')<br>'):'')+
+           'ส่งรหัสผ่านใหม่ไปที่อีเมลที่บันทึกไว้ '+nf(res.count||list.length)+' อีเมล:'+
+           '<div style="margin:6px 0 0;padding:8px 10px;background:#f8fafc;border:1px solid #e3e8f0;border-radius:9px;word-break:break-all">'+
+           list.map(function(e){ return '<div>• '+esc(e)+'</div>'; }).join('')+'</div>'+
            '<br>รหัสผ่านเดิมใช้ไม่ได้แล้ว เข้าสู่ระบบด้วยรหัสใหม่ในอีเมล แล้วกด "เปลี่ยนรหัสผ่าน" เพื่อตั้งรหัสที่จำได้เอง'+
            '<br>ถ้าไม่พบอีเมลภายใน 2–3 นาที ลองตรวจในกล่อง Junk/Spam');
     var saved=localStorage.getItem(LS_KEY);
@@ -1312,7 +1315,7 @@ $('fgSend').addEventListener('click',function(){
         if(normUser(o.u)===normUser(u)) localStorage.removeItem(LS_KEY);
       }catch(e){}
     }
-    setTimeout(function(){ $('fgmodal').style.display='none'; },8000);
+
   }).catch(function(err){
     $('fgSend').disabled=false; $('fgSend').textContent='ตั้งรหัสใหม่และส่งอีเมล';
     fgMsg('เรียก Apps Script ไม่ได้ ('+err.message+')','err');
