@@ -1316,8 +1316,9 @@ $('pwSave').addEventListener('click',function(){
   api({action:'changePassword',user:u,pass:o,newpass:n}).then(function(res){
     $('pwSave').disabled=false; $('pwSave').textContent='บันทึกรหัสผ่านใหม่';
     if(!res||!res.ok){
-      pwMsg((res&&res.message)||'เปลี่ยนรหัสผ่านไม่สำเร็จ','err');
-      pwDiag(res?('คำตอบจากเซิร์ฟเวอร์: '+esc(JSON.stringify(res))):pingLink());
+      var m=(res&&res.message)||'เปลี่ยนรหัสผ่านไม่สำเร็จ';
+      pwMsg(m,'err');
+      pwDiag((apiHint(m)||'')+(apiHint(m)?'<br>':'')+(res?('คำตอบจากเซิร์ฟเวอร์: '+esc(JSON.stringify(res))):pingLink()));
       return;
     }
     if(res.saved===false){
@@ -1371,6 +1372,18 @@ function mailLinks(list){
   return '<div class="maillist">'+list.map(function(e){
     return '<div>• <a href="mailto:'+esc(e)+'">'+esc(e)+'</a></div>';
   }).join('')+'</div>';
+}
+/* แปลง error จาก Apps Script ให้เป็นคำแนะนำที่ทำตามได้ */
+function apiHint(msg){
+  msg=String(msg||'');
+  if(/send_mail|ไม่ได้รับอนุญาต|not authorized|Authorization/i.test(msg)){
+    return 'สคริปต์ยังไม่ได้รับสิทธิ์ส่งอีเมล แก้ได้โดย: เปิด Apps Script → เลือกฟังก์ชัน <b>authorizeMail</b> → กด Run → ' +
+           'Review permissions → Allow (ต้องมีหัวข้อ "ส่งอีเมลในชื่อของคุณ") → จากนั้น Deploy → <b>New version</b>';
+  }
+  if(/protected|permission|edit/i.test(msg)){
+    return 'ตรวจสอบว่าบัญชีที่ Deploy สคริปต์มีสิทธิ์แก้ไขกูเกิลชีต และคอลัมน์ Password ไม่ได้ถูกป้องกันไว้';
+  }
+  return '';
 }
 function cfWho(res,fallback){
   return '<div class="who">ผู้ใช้งาน: <b>'+esc(res.name||res.account||fallback)+'</b>'+
@@ -1438,8 +1451,9 @@ function cfDoReset(info){
   api({action:'forgotPassword',user:CF_USER}).then(function(res){
     if(!res||!res.ok){
       ok.disabled=false; ok.textContent='ยืนยัน'; if(cancel) cancel.disabled=false;
-      $('cfBody').innerHTML += '<div class="msg err" style="display:block;margin-top:11px">'+
-        esc((res&&res.message)||'ตั้งรหัสผ่านใหม่ไม่สำเร็จ')+'</div>';
+      var m=(res&&res.message)||'ตั้งรหัสผ่านใหม่ไม่สำเร็จ', hint=apiHint(m);
+      $('cfBody').innerHTML += '<div class="msg err" style="display:block;margin-top:11px">'+esc(m)+'</div>'+
+        (hint?('<div style="margin-top:8px;font-size:12px;color:#64748b;line-height:1.7">'+hint+'</div>'):'');
       return;
     }
     var list=(res.emails&&res.emails.length)?res.emails:(res.masked||(info&&info.emails)||[]);
