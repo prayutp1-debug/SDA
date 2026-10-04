@@ -568,11 +568,11 @@ function scoped(list){ return (SESSION&&SESSION.all)?list:list.filter(canSee); }
    ========================================================================= */
 var TABS={
   sda:{ label:'การใช้ SDA', sheet:'SDA', accent:'--sda',
-        filters:['กิจการ','ภาค','แผนก','โรงงาน','ผู้รับเหมา'],
+        filters:['กิจการ','ภาค','แผนก','โรงงาน','ผู้รับเหมา','ขนาดรถ','ประเภทรถ'],
         search:['เบอร์รถ','จบส.','ชื่อ จบส.','ผู้รับเหมา','โรงงาน'],
         period:['Year','Month'] },
   training:{ label:'อบรม จบส.', sheet:'Traning', accent:'--trn',
-        filters:['กิจการ','ภาค','แผนก','โรงงาน','ผู้รับเหมา'],
+        filters:['กิจการ','ภาค','แผนก','โรงงาน','ผู้รับเหมา','ขนาด','ประเภทรถ'],
         search:['เบอร์รถ','รหัส จบส.','ชื่อ-นามสกุล','ผู้รับเหมา','โรงงาน'] },
   gps:{ label:'GPS', sheet:'GPS', accent:'--gps',
         filters:['กิจการ','โรงงาน','ผู้รับเหมา','GPS Vendor','สถานะรถ'],
@@ -784,7 +784,7 @@ function renderSDA(rows){
     {key:'จบส.',label:'รหัส จบส.',cls:'mid'},
     {key:'ชื่อ จบส.',label:'ชื่อ-นามสกุล'},
     {key:'ขนาดรถ',label:'ขนาด',cls:'mid'},
-    {key:'บัญชี',label:'บัญชี',cls:'mid'}
+    {key:'ประเภทรถ',label:'ประเภทรถ',cls:'mid',val:function(r){ return txt(pick(r,['ประเภทรถ','บัญชี','รถบัญชี'])); }}
   ]);
   for(var d=1;d<=31;d++){
     (function(d){
@@ -878,6 +878,8 @@ function renderTraining(rows){
        var m={pass:'b-ok',fail:'b-bad',pending:'b-warn',nojbs:'b-mute'};
        return '<td class="mid" data-k="สถานะ" data-v="'+esc(r.__catLabel)+'"><span class="badge '+m[r.__cat]+'">'+esc(r.__catLabel)+'</span></td>';
     }},
+    {key:'ขนาด',label:'ขนาด',cls:'mid'},
+    {key:'ประเภทรถ',label:'ประเภทรถ',cls:'mid',val:function(r){ return txt(pick(r,['ประเภทรถ','รถบัญชี'])); }},
     {key:'__group',label:'กลุ่ม จบส.',cls:'mid'},
     {key:'__date',label:'วันที่อบรม / กำหนด',cls:'mid'},
     {key:'คะแนนก่อนอบรม',label:'ก่อนอบรม',cls:'num'},
