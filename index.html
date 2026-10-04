@@ -166,12 +166,20 @@ td.day{text-align:center;padding:6px 2px;font-size:11px;min-width:26px;max-width
 .linksep{color:#cbd5e1}
 .linkbtn{display:block;margin:11px auto 0;background:none;border:0;color:#6366f1;font-size:13px;cursor:pointer;text-decoration:underline}
 .linkbtn:hover{color:#4338ca}
-#pwmodal,#fgmodal{position:fixed;inset:0;z-index:58;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,.5);padding:18px}
-#fgmodal .box,#pwmodal .box{background:#fff;border-radius:16px;padding:22px 22px 18px;max-width:390px;width:100%;box-shadow:0 20px 50px rgba(15,23,42,.32)}
-#pwmodal h3,#fgmodal h3{margin:0 0 4px;font-size:18px;font-weight:700}
-#pwmodal .sub,#fgmodal .sub{margin:0 0 16px;font-size:12.5px;color:var(--muted);line-height:1.6}
+#pwmodal,#fgmodal,#cfmodal{position:fixed;inset:0;z-index:58;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,.5);padding:18px}
+#fgmodal .box,#pwmodal .box,#cfmodal .box{background:#fff;border-radius:16px;padding:22px 22px 18px;max-width:390px;width:100%;box-shadow:0 20px 50px rgba(15,23,42,.32)}
+#pwmodal h3,#fgmodal h3,#cfmodal h3{margin:0 0 4px;font-size:18px;font-weight:700}
+#pwmodal .sub,#fgmodal .sub,#cfmodal .sub{margin:0 0 16px;font-size:12.5px;color:var(--muted);line-height:1.6}
 #pwmodal input,#fgmodal input{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;outline:none}
 #pwmodal input:focus,#fgmodal input:focus{border-color:var(--sda);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+#cfmodal{z-index:59}
+#cfmodal .maillist{margin:8px 0 0;padding:9px 11px;background:#f8fafc;border:1px solid #e3e8f0;border-radius:10px;
+  font-size:13px;line-height:1.8;word-break:break-all}
+#cfmodal .maillist a{color:#2563eb;text-decoration:none}
+#cfmodal .maillist a:hover{text-decoration:underline}
+#cfmodal .warn{margin-top:11px;font-size:12.5px;color:#92400e;background:var(--warn-soft);border-radius:9px;padding:9px 11px;line-height:1.7}
+#cfmodal .who{font-size:13.5px;line-height:1.8}
+#cfmodal .who b{font-size:15px}
 .pwbtns{display:flex;gap:9px;margin-top:14px}
 .pwbtns .btn-ghost{flex:1;padding:11px}
 .pwbtns .btn-primary{flex:1.6}
@@ -266,16 +274,24 @@ td.day{text-align:center;padding:6px 2px;font-size:11px;min-width:26px;max-width
 <div id="loader"><div class="box"><div class="spin"></div><div id="loadText">กำลังโหลดข้อมูล…</div></div></div>
 <div id="cellpop"><div class="box"><div class="k" id="popK"></div><div class="v" id="popV"></div></div></div>
 
+<div id="cfmodal"><div class="box">
+  <h3 id="cfTitle">ยืนยันการตั้งรหัสผ่านใหม่</h3>
+  <div id="cfBody"></div>
+  <div class="pwbtns" id="cfBtns">
+    <button type="button" class="btn-ghost" id="cfCancel">ยกเลิก</button>
+    <button type="button" class="btn-primary" id="cfOk">ยืนยัน</button>
+  </div>
+</div></div>
+
 <div id="fgmodal"><div class="box">
   <h3>ลืมรหัสผ่าน</h3>
-  <p class="sub">ระบบจะ<b>ตั้งรหัสผ่านใหม่</b>ให้อัตโนมัติ แล้วส่งไปยังอีเมลที่ลงทะเบียนไว้ในชีตผู้ใช้งาน<br>
-    <span style="color:#b45309">รหัสผ่านเดิมจะใช้ไม่ได้ทันที และมีผลกับทุกเว็บแอปที่ใช้บัญชีชุดนี้</span></p>
+  <p class="sub">กรอกชื่อผู้ใช้งาน ระบบจะแสดงอีเมลที่บันทึกไว้ให้ยืนยันก่อน แล้วจึงตั้งรหัสผ่านใหม่และส่งไปให้</p>
   <div class="field"><label for="fgUser">ผู้ใช้งาน (รหัส Vendor หรือชื่อผู้ใช้)</label><input id="fgUser" type="text" autocomplete="username"></div>
   <div class="msg" id="fgMsg"></div>
   <div id="fgDiag"></div>
   <div class="pwbtns">
     <button type="button" class="btn-ghost" id="fgCancel">ยกเลิก</button>
-    <button type="button" class="btn-primary" id="fgSend">ตั้งรหัสใหม่และส่งอีเมล</button>
+    <button type="button" class="btn-primary" id="fgSend">ถัดไป</button>
   </div>
 </div></div>
 
@@ -1192,7 +1208,7 @@ $('reloadBtn').addEventListener('click',function(){
              .catch(function(){ loader(false); alert('โหลดไฟล์ไม่สำเร็จ — ตรวจสอบว่าไฟล์ '+EXCEL_FILE+' อยู่โฟลเดอร์เดียวกับ index.html'); });
 });
 $('logoutBtn').addEventListener('click',function(){
-  SESSION=null; $('pwmodal').style.display='none'; $('fgmodal').style.display='none';
+  SESSION=null; $('pwmodal').style.display='none'; $('fgmodal').style.display='none'; $('cfmodal').style.display='none';
   $('app').style.display='none'; $('login').style.display='flex';
   resetEyes(['p']); setMsg('','');
   var saved=localStorage.getItem(LS_KEY);
@@ -1292,132 +1308,83 @@ $('fgOpen').addEventListener('click',function(){
 $('fgCancel').addEventListener('click',function(){ $('fgmodal').style.display='none'; });
 $('fgmodal').addEventListener('click',function(e){ if(e.target===this) this.style.display='none'; });
 $('fgUser').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); $('fgSend').click(); } });
+
+/* ขั้นที่ 1 — ตรวจสอบว่าผู้ใช้นี้มีอีเมลอะไรบ้าง แล้วเปิด popup ให้ยืนยัน */
 $('fgSend').addEventListener('click',function(){
   var u=$('fgUser').value.trim();
   if(!u){ fgMsg('กรุณากรอกชื่อผู้ใช้งาน','err'); return; }
   if(!API_URL){ fgMsg('ยังไม่ได้ตั้งค่า API_URL','err'); return; }
-  $('fgSend').disabled=true; $('fgSend').textContent='กำลังตั้งรหัสใหม่…'; fgMsg('กำลังตั้งรหัสผ่านใหม่และส่งอีเมล…','info'); fgDiag('');
-  api({action:'forgotPassword',user:u}).then(function(res){
-    $('fgSend').disabled=false; $('fgSend').textContent='ตั้งรหัสใหม่และส่งอีเมล';
-    if(!res||!res.ok){ fgMsg((res&&res.message)||'ตั้งรหัสผ่านใหม่ไม่สำเร็จ','err'); return; }
-    fgMsg('ตั้งรหัสผ่านใหม่และส่งอีเมลเรียบร้อยแล้ว','info');
-    var list=(res.emails&&res.emails.length)?res.emails:(res.masked||[]);
-    fgDiag((res.name?('ผู้ใช้งาน: <b>'+esc(res.name)+'</b> ('+esc(res.account||'')+')<br>'):'')+
-           'ส่งรหัสผ่านใหม่ไปที่อีเมลที่บันทึกไว้ '+nf(res.count||list.length)+' อีเมล:'+
-           '<div style="margin:6px 0 0;padding:8px 10px;background:#f8fafc;border:1px solid #e3e8f0;border-radius:9px;word-break:break-all">'+
-           list.map(function(e){ return '<div>• '+esc(e)+'</div>'; }).join('')+'</div>'+
-           '<br>รหัสผ่านเดิมใช้ไม่ได้แล้ว เข้าสู่ระบบด้วยรหัสใหม่ในอีเมล แล้วกด "เปลี่ยนรหัสผ่าน" เพื่อตั้งรหัสที่จำได้เอง'+
-           '<br>ถ้าไม่พบอีเมลภายใน 2–3 นาที ลองตรวจในกล่อง Junk/Spam');
-    var saved=localStorage.getItem(LS_KEY);
-    if(saved){
-      try{
-        var o=JSON.parse(decodeURIComponent(escape(atob(saved))));
-        if(normUser(o.u)===normUser(u)) localStorage.removeItem(LS_KEY);
-      }catch(e){}
-    }
-
+  $('fgSend').disabled=true; $('fgSend').textContent='กำลังตรวจสอบ…'; fgMsg('กำลังค้นหาอีเมลที่บันทึกไว้…','info'); fgDiag('');
+  api({action:'lookupUser',user:u}).then(function(res){
+    $('fgSend').disabled=false; $('fgSend').textContent='ถัดไป';
+    if(!res||!res.ok){ fgMsg((res&&res.message)||'ตรวจสอบข้อมูลไม่สำเร็จ','err'); return; }
+    fgMsg('','');
+    openConfirm(u,res);
   }).catch(function(err){
-    $('fgSend').disabled=false; $('fgSend').textContent='ตั้งรหัสใหม่และส่งอีเมล';
+    $('fgSend').disabled=false; $('fgSend').textContent='ถัดไป';
     fgMsg('เรียก Apps Script ไม่ได้ ('+err.message+')','err');
     fgDiag('ตรวจสอบว่า Deploy เวอร์ชันล่าสุดแล้ว และตั้ง Who has access เป็น Anyone');
   });
 });
-$('pwOpenApp').addEventListener('click',openPw);
-$('pwCancel').addEventListener('click',function(){ $('pwmodal').style.display='none'; });
-function pwDiag(html){ $('pwDiag').innerHTML = html? '<div style="margin-top:9px;font-size:12px;color:#64748b;line-height:1.7">'+html+'</div>' : ''; }
-function pingLink(){
-  return 'เปิดลิงก์นี้ในแท็บใหม่เพื่อดูว่า Apps Script ตอบอะไร: <a href="'+esc(API_URL)+'?action=ping" target="_blank" rel="noopener">ทดสอบ /exec?action=ping</a>';
+
+/* ขั้นที่ 2 — popup ยืนยัน/ยกเลิก */
+var CF_USER='';
+function mailLinks(list){
+  return '<div class="maillist">'+list.map(function(e){
+    return '<div>• <a href="mailto:'+esc(e)+'">'+esc(e)+'</a></div>';
+  }).join('')+'</div>';
 }
-$('pwTest').addEventListener('click',function(){
-  if(!API_URL){ pwMsg('ยังไม่ได้ตั้งค่า API_URL','err'); return; }
-  pwMsg('กำลังทดสอบการเชื่อมต่อ…','info'); pwDiag('');
-  api({action:'whoami'}).then(function(res){
-    if(res&&res.ok){
-      pwMsg('เชื่อมต่อ Apps Script ได้','info');
-      pwDiag('สคริปต์รันด้วยบัญชี: <b>'+esc(res.effectiveUser||'-')+'</b><br>ชีตที่เขียน: <b>'+esc(res.sheet||'-')+'</b> ('+nf(res.rows||0)+' แถว)<br>สิทธิ์เขียนชีต: <b>'+(res.canEdit?'เขียนได้':'เขียนไม่ได้')+'</b>');
-    } else {
-      pwMsg('Apps Script ตอบกลับมาแต่มีข้อผิดพลาด','err');
-      pwDiag(esc((res&&res.message)||JSON.stringify(res))+'<br>'+pingLink());
-    }
-  }).catch(function(err){
-    pwMsg('เรียก Apps Script ไม่ได้ ('+err.message+')','err');
-    pwDiag('สาเหตุที่พบบ่อย: ยังไม่ได้ Deploy เป็น <b>New version</b> หลังวางโค้ดใหม่, ตั้ง Who has access ไม่ใช่ <b>Anyone</b>, หรือยังไม่ได้กด Authorize สคริปต์<br>'+pingLink());
-  });
-});
-$('pwmodal').addEventListener('click',function(e){ if(e.target===this) this.style.display='none'; });
-$('pwSave').addEventListener('click',function(){
-  var u=$('pwUser').value.trim(), o=$('pwOld').value, n=$('pwNew').value, n2=$('pwNew2').value;
-  if(!u||!o||!n){ pwMsg('กรอกข้อมูลให้ครบทุกช่อง','err'); return; }
-  if(n!==n2){ pwMsg('รหัสผ่านใหม่ทั้งสองช่องไม่ตรงกัน','err'); return; }
-  if(n.length<4){ pwMsg('รหัสผ่านใหม่ต้องยาวอย่างน้อย 4 ตัวอักษร','err'); return; }
-  if(n===o){ pwMsg('รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสเดิม','err'); return; }
-  $('pwSave').disabled=true; $('pwSave').textContent='กำลังบันทึก…'; pwMsg('กำลังบันทึกลงกูเกิลชีต…','info');
-  api({action:'changePassword',user:u,pass:o,newpass:n}).then(function(res){
-    $('pwSave').disabled=false; $('pwSave').textContent='บันทึกรหัสผ่านใหม่';
+function openConfirm(user,res){
+  CF_USER=user;
+  var list=(res.emails&&res.emails.length)?res.emails:(res.masked||[]);
+  $('cfTitle').textContent='ยืนยันการตั้งรหัสผ่านใหม่';
+  $('cfBody').innerHTML=
+    '<div class="who">ผู้ใช้งาน: <b>'+esc(res.name||res.account||user)+'</b>'+
+    (res.account?(' ('+esc(res.account)+')'):'')+'</div>'+
+    '<div style="margin-top:9px;font-size:13.5px">ส่งรหัสผ่านใหม่ไปที่อีเมลที่บันทึกไว้ '+nf(res.count||list.length)+' อีเมล:</div>'+
+    mailLinks(list)+
+    '<div class="warn">เมื่อกดยืนยัน ระบบจะตั้งรหัสผ่านใหม่ให้ทันที <b>รหัสผ่านเดิมจะใช้ไม่ได้อีก</b> '+
+    'และมีผลกับทุกเว็บแอปที่ใช้บัญชีชุดนี้</div>';
+  $('cfBtns').innerHTML='<button type="button" class="btn-ghost" id="cfCancel">ยกเลิก</button>'+
+    '<button type="button" class="btn-primary" id="cfOk">ยืนยัน</button>';
+  $('cfCancel').addEventListener('click',closeConfirm);
+  $('cfOk').addEventListener('click',doReset);
+  $('cfmodal').style.display='flex';
+}
+function closeConfirm(){ $('cfmodal').style.display='none'; }
+$('cfmodal').addEventListener('click',function(e){ if(e.target===this) closeConfirm(); });
+function doReset(){
+  var btn=$('cfOk');
+  btn.disabled=true; btn.textContent='กำลังดำเนินการ…';
+  var cancel=$('cfCancel'); if(cancel) cancel.disabled=true;
+  api({action:'forgotPassword',user:CF_USER}).then(function(res){
     if(!res||!res.ok){
-      pwMsg((res&&res.message)||'เปลี่ยนรหัสผ่านไม่สำเร็จ','err');
-      pwDiag(res?('คำตอบจากเซิร์ฟเวอร์: '+esc(JSON.stringify(res))):pingLink());
+      btn.disabled=false; btn.textContent='ยืนยัน'; if(cancel) cancel.disabled=false;
+      $('cfBody').innerHTML += '<div class="msg err" style="display:block;margin-top:11px">'+
+        esc((res&&res.message)||'ตั้งรหัสผ่านใหม่ไม่สำเร็จ')+'</div>';
       return;
     }
-    if(res.saved===false){
-      pwMsg('เซิร์ฟเวอร์รับคำสั่งแล้วแต่เขียนลงชีตไม่สำเร็จ','err');
-      pwDiag('ตรวจสอบว่าบัญชีที่ Deploy สคริปต์มีสิทธิ์แก้ไขชีต และชีตไม่ได้ถูกป้องกัน (Protected range)<br>คำตอบ: '+esc(JSON.stringify(res)));
-      return;
-    }
-    var row=USERS.filter(function(x){ return normUser(x.user)===normUser(u); })[0];
-    if(row) row.pass=n;
+    var list=(res.emails&&res.emails.length)?res.emails:(res.masked||[]);
+    $('cfTitle').textContent='ตั้งรหัสผ่านใหม่เรียบร้อย';
+    $('cfBody').innerHTML=
+      '<div class="who">ผู้ใช้งาน: <b>'+esc(res.name||res.account||CF_USER)+'</b>'+
+      (res.account?(' ('+esc(res.account)+')'):'')+'</div>'+
+      '<div style="margin-top:9px;font-size:13.5px">ส่งรหัสผ่านใหม่ไปที่อีเมลที่บันทึกไว้ '+nf(res.count||list.length)+' อีเมลแล้ว:</div>'+
+      mailLinks(list)+
+      '<div class="warn">รหัสผ่านเดิมใช้ไม่ได้แล้ว เข้าสู่ระบบด้วยรหัสใหม่ในอีเมล แล้วกด "เปลี่ยนรหัสผ่าน" เพื่อตั้งรหัสที่จำได้เอง'+
+      '<br>ถ้าไม่พบอีเมลภายใน 2–3 นาที ลองตรวจในกล่อง Junk/Spam</div>';
+    $('cfBtns').innerHTML='<button type="button" class="btn-primary" id="cfClose" style="flex:1">ปิด</button>';
+    $('cfClose').addEventListener('click',function(){ closeConfirm(); $('fgmodal').style.display='none'; });
     var saved=localStorage.getItem(LS_KEY);
     if(saved){
       try{
-        var o2=JSON.parse(decodeURIComponent(escape(atob(saved))));
-        if(normUser(o2.u)===normUser(u)) localStorage.setItem(LS_KEY, btoa(unescape(encodeURIComponent(JSON.stringify({u:o2.u,p:n})))));
+        var o=JSON.parse(decodeURIComponent(escape(atob(saved))));
+        if(normUser(o.u)===normUser(CF_USER)){ localStorage.removeItem(LS_KEY); $('p').value=''; $('remember').checked=false; }
       }catch(e){}
     }
-    pwMsg('เปลี่ยนรหัสผ่านเรียบร้อย กำลังตรวจสอบซ้ำกับชีต…','info');
-    $('pwOld').value=''; $('pwNew').value=''; $('pwNew2').value='';
-    api({action:'login',user:u,pass:n}).then(function(chk){
-      if(chk&&chk.ok){
-        pwMsg('เปลี่ยนรหัสผ่านเรียบร้อย ตรวจสอบกับชีตแล้วใช้รหัสใหม่ได้ทันที','info');
-        pwDiag('');
-        setTimeout(function(){ $('pwmodal').style.display='none'; },2200);
-      } else {
-        pwMsg('บันทึกแล้วแต่ตรวจสอบซ้ำไม่ผ่าน กรุณาเปิดกูเกิลชีตตรวจสอบ','err');
-        pwDiag(esc(JSON.stringify(chk)));
-      }
-    }).catch(function(){ pwDiag('ตรวจสอบซ้ำไม่สำเร็จ แต่คำสั่งบันทึกสำเร็จแล้ว'); });
   }).catch(function(err){
-    $('pwSave').disabled=false; $('pwSave').textContent='บันทึกรหัสผ่านใหม่';
-    pwMsg('เชื่อมต่อ Apps Script ไม่ได้ ('+err.message+') — ตรวจสอบ API_URL และการตั้งค่า Deploy เป็น Anyone','err');
-  });
-});
-
-/* ---------- ปุ่มดวงตา เปิด/ปิดการดูรหัสผ่าน ---------- */
-var EYE_OPEN='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 12S5 5.5 12 5.5 22.5 12 22.5 12 19 18.5 12 18.5 1.5 12 1.5 12Z"/><circle cx="12" cy="12" r="3.2"/></svg>';
-var EYE_OFF ='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 5.7A9.8 9.8 0 0 1 12 5.5c7 0 10.5 6.5 10.5 6.5a17 17 0 0 1-3.4 4.2M6.3 7.8A17 17 0 0 0 1.5 12S5 18.5 12 18.5c1.6 0 3-.3 4.2-.8"/><path d="M9.8 9.8a3.2 3.2 0 0 0 4.4 4.4"/><path d="M3 3l18 18"/></svg>';
-function addEye(input){
-  if(!input||input.parentNode.classList.contains('pwwrap')) return;
-  var wrap=document.createElement('span'); wrap.className='pwwrap';
-  input.parentNode.insertBefore(wrap,input); wrap.appendChild(input);
-  var b=document.createElement('button');
-  b.type='button'; b.className='eye'; b.innerHTML=EYE_OPEN;
-  b.setAttribute('aria-label','แสดงรหัสผ่าน'); b.title='แสดงรหัสผ่าน';
-  b.addEventListener('click',function(){
-    var showing = input.type==='text';
-    input.type = showing? 'password' : 'text';
-    b.innerHTML = showing? EYE_OPEN : EYE_OFF;
-    var lbl = showing? 'แสดงรหัสผ่าน' : 'ซ่อนรหัสผ่าน';
-    b.setAttribute('aria-label',lbl); b.title=lbl;
-    input.focus();
-  });
-  wrap.appendChild(b);
-}
-['p','pwOld','pwNew','pwNew2'].forEach(function(id){ addEye($(id)); });
-/* ปิดการมองเห็นกลับทุกครั้งที่เปิดหน้าต่างเปลี่ยนรหัสผ่านใหม่ */
-function resetEyes(ids){
-  ids.forEach(function(id){
-    var el=$(id); if(!el||el.type!=='text') return;
-    var b=el.parentNode.querySelector('.eye');
-    if(b) b.click();
+    btn.disabled=false; btn.textContent='ยืนยัน'; if(cancel) cancel.disabled=false;
+    $('cfBody').innerHTML += '<div class="msg err" style="display:block;margin-top:11px">เรียก Apps Script ไม่ได้ ('+esc(err.message)+')</div>';
   });
 }
 
