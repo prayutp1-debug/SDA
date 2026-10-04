@@ -203,7 +203,7 @@ td.day{text-align:center;padding:6px 2px;font-size:11px;min-width:26px;max-width
       <input id="p" name="password" type="password" autocomplete="current-password" placeholder="รหัสผ่าน" required>
     </div>
     <div class="row-between">
-      <label class="check"><input type="checkbox" id="remember"> จำการเข้าสู่ระบบ</label>
+      <label class="check"><input type="checkbox" id="remember"> จำชื่อผู้ใช้และรหัสผ่าน</label>
       <span style="font-size:12px;color:#94a3b8" id="userStat">กำลังโหลดรายชื่อผู้ใช้…</span>
     </div>
     <button class="btn-primary" id="loginBtn" type="submit">เข้าสู่ระบบ</button>
@@ -1192,9 +1192,16 @@ $('reloadBtn').addEventListener('click',function(){
              .catch(function(){ loader(false); alert('โหลดไฟล์ไม่สำเร็จ — ตรวจสอบว่าไฟล์ '+EXCEL_FILE+' อยู่โฟลเดอร์เดียวกับ index.html'); });
 });
 $('logoutBtn').addEventListener('click',function(){
-  localStorage.removeItem(LS_KEY); SESSION=null; $('pwmodal').style.display='none'; $('fgmodal').style.display='none';
+  SESSION=null; $('pwmodal').style.display='none'; $('fgmodal').style.display='none';
   $('app').style.display='none'; $('login').style.display='flex';
-  $('p').value=''; resetEyes(['p']); setMsg('','');
+  resetEyes(['p']); setMsg('','');
+  var saved=localStorage.getItem(LS_KEY);
+  if(saved){
+    try{
+      var o=JSON.parse(decodeURIComponent(escape(atob(saved))));
+      $('u').value=o.u||''; $('p').value=o.p||''; $('remember').checked=true;
+    }catch(e){ $('p').value=''; }
+  } else { $('p').value=''; $('remember').checked=false; }
 });
 
 /* =========================================================================
@@ -1416,6 +1423,14 @@ function resetEyes(ids){
    ========================================================================= */
 (function boot(){
   var okFile=false;
+  /* เปิดลิงก์ทุกครั้งจะเห็นหน้า login เสมอ — ถ้าเคยเลือกจำไว้ จะเติมชื่อผู้ใช้/รหัสผ่านให้ แล้วผู้ใช้กดเข้าสู่ระบบเอง */
+  (function prefillSaved(){
+    var saved=localStorage.getItem(LS_KEY); if(!saved) return;
+    try{
+      var o=JSON.parse(decodeURIComponent(escape(atob(saved))));
+      if(o&&o.u){ $('u').value=o.u; $('p').value=o.p||''; $('remember').checked=true; }
+    }catch(e){ localStorage.removeItem(LS_KEY); }
+  })();
   function fail(){
     setUserStat();
     setMsg('อ่านรายชื่อผู้ใช้ไม่ได้ทั้งจากกูเกิลชีตและไฟล์ '+LOCAL_CSV+' ในโฟลเดอร์','err');
@@ -1433,22 +1448,8 @@ function resetEyes(ids){
   function gotUsers(us,src){
     USERS=us; USER_SRC=src; setUserStat(); setMsg('','');
     var old=$('loginForm').querySelector('details'); if(old) old.remove();
-    autoLogin();
   }
-  var autoTried=false;
-  function autoLogin(){
-    if(!okFile||SESSION||autoTried) return;
-    if(!USERS.length&&!API_URL) return;
-    var saved=localStorage.getItem(LS_KEY); if(!saved) return;
-    var o; try{ o=JSON.parse(decodeURIComponent(escape(atob(saved)))); }catch(e){ localStorage.removeItem(LS_KEY); return; }
-    autoTried=true;
-    verifyLogin(o.u,o.p).then(function(r){
-      if(r.ok&&r.hit){ $('remember').checked=true; startSession(r.hit); }
-      else localStorage.removeItem(LS_KEY);
-    });
-  }
-
-  loadExcel().then(function(){ okFile=true; autoLogin(); })
+  loadExcel().then(function(){ okFile=true; })
              .catch(function(){ show($('filepick'),true); });
 
   var localDone=false, remoteDone=false;
