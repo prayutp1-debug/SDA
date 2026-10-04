@@ -166,12 +166,12 @@ td.day{text-align:center;padding:6px 2px;font-size:11px;min-width:26px;max-width
 .linksep{color:#cbd5e1}
 .linkbtn{display:block;margin:11px auto 0;background:none;border:0;color:#6366f1;font-size:13px;cursor:pointer;text-decoration:underline}
 .linkbtn:hover{color:#4338ca}
-#pwmodal,#fgmodal,#cfmodal{position:fixed;inset:0;z-index:58;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,.5);padding:18px}
-#fgmodal .box,#pwmodal .box,#cfmodal .box{background:#fff;border-radius:16px;padding:22px 22px 18px;max-width:390px;width:100%;box-shadow:0 20px 50px rgba(15,23,42,.32)}
-#pwmodal h3,#fgmodal h3,#cfmodal h3{margin:0 0 4px;font-size:18px;font-weight:700}
-#pwmodal .sub,#fgmodal .sub,#cfmodal .sub{margin:0 0 16px;font-size:12.5px;color:var(--muted);line-height:1.6}
-#pwmodal input,#fgmodal input{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;outline:none}
-#pwmodal input:focus,#fgmodal input:focus{border-color:var(--sda);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+#pwmodal,#cfmodal{position:fixed;inset:0;z-index:58;display:none;align-items:center;justify-content:center;background:rgba(15,23,42,.5);padding:18px}
+#pwmodal .box,#cfmodal .box{background:#fff;border-radius:16px;padding:22px 22px 18px;max-width:390px;width:100%;box-shadow:0 20px 50px rgba(15,23,42,.32)}
+#pwmodal h3,#cfmodal h3{margin:0 0 4px;font-size:18px;font-weight:700}
+#pwmodal .sub,#cfmodal .sub{margin:0 0 16px;font-size:12.5px;color:var(--muted);line-height:1.6}
+#pwmodal input,#cfmodal input{width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:10px;outline:none}
+#pwmodal input:focus,#cfmodal input:focus{border-color:var(--sda);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
 #cfmodal{z-index:59}
 #cfmodal .maillist{margin:8px 0 0;padding:9px 11px;background:#f8fafc;border:1px solid #e3e8f0;border-radius:10px;
   font-size:13px;line-height:1.8;word-break:break-all}
@@ -280,18 +280,6 @@ td.day{text-align:center;padding:6px 2px;font-size:11px;min-width:26px;max-width
   <div class="pwbtns" id="cfBtns">
     <button type="button" class="btn-ghost" id="cfCancel">ยกเลิก</button>
     <button type="button" class="btn-primary" id="cfOk">ยืนยัน</button>
-  </div>
-</div></div>
-
-<div id="fgmodal"><div class="box">
-  <h3>ลืมรหัสผ่าน</h3>
-  <p class="sub">กรอกชื่อผู้ใช้งาน ระบบจะแสดงอีเมลที่บันทึกไว้ให้ยืนยันก่อน แล้วจึงตั้งรหัสผ่านใหม่และส่งไปให้</p>
-  <div class="field"><label for="fgUser">ผู้ใช้งาน (รหัส Vendor หรือชื่อผู้ใช้)</label><input id="fgUser" type="text" autocomplete="username"></div>
-  <div class="msg" id="fgMsg"></div>
-  <div id="fgDiag"></div>
-  <div class="pwbtns">
-    <button type="button" class="btn-ghost" id="fgCancel">ยกเลิก</button>
-    <button type="button" class="btn-primary" id="fgSend">ถัดไป</button>
   </div>
 </div></div>
 
@@ -1208,7 +1196,7 @@ $('reloadBtn').addEventListener('click',function(){
              .catch(function(){ loader(false); alert('โหลดไฟล์ไม่สำเร็จ — ตรวจสอบว่าไฟล์ '+EXCEL_FILE+' อยู่โฟลเดอร์เดียวกับ index.html'); });
 });
 $('logoutBtn').addEventListener('click',function(){
-  SESSION=null; $('pwmodal').style.display='none'; $('fgmodal').style.display='none'; $('cfmodal').style.display='none';
+  SESSION=null; $('pwmodal').style.display='none'; $('cfmodal').style.display='none';
   $('app').style.display='none'; $('login').style.display='flex';
   resetEyes(['p']); setMsg('','');
   var saved=localStorage.getItem(LS_KEY);
@@ -1296,85 +1284,101 @@ function openPw(){
 }
 $('pwOpenLogin').addEventListener('click',openPw);
 
-/* ---------- ลืมรหัสผ่าน: ส่งรหัสไปอีเมลที่ลงทะเบียนไว้ ---------- */
-function fgMsg(t,cls){ var m=$('fgMsg'); m.className='msg'+(cls?' '+cls:''); m.textContent=t; if(!t) m.style.display='none'; }
-function fgDiag(html){ $('fgDiag').innerHTML = html? '<div style="margin-top:9px;font-size:12px;color:#64748b;line-height:1.7">'+html+'</div>' : ''; }
-$('fgOpen').addEventListener('click',function(){
-  $('fgUser').value=$('u').value.trim(); fgMsg('',''); fgDiag('');
-  if(!API_URL) fgMsg('ยังไม่ได้ตั้งค่า API_URL ในไฟล์ index.html จึงยังส่งอีเมลไม่ได้','err');
-  $('fgmodal').style.display='flex';
-  setTimeout(function(){ $('fgUser').focus(); },50);
-});
-$('fgCancel').addEventListener('click',function(){ $('fgmodal').style.display='none'; });
-$('fgmodal').addEventListener('click',function(e){ if(e.target===this) this.style.display='none'; });
-$('fgUser').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); $('fgSend').click(); } });
-
-/* ขั้นที่ 1 — ตรวจสอบว่าผู้ใช้นี้มีอีเมลอะไรบ้าง แล้วเปิด popup ให้ยืนยัน */
-$('fgSend').addEventListener('click',function(){
-  var u=$('fgUser').value.trim();
-  if(!u){ fgMsg('กรุณากรอกชื่อผู้ใช้งาน','err'); return; }
-  if(!API_URL){ fgMsg('ยังไม่ได้ตั้งค่า API_URL','err'); return; }
-  $('fgSend').disabled=true; $('fgSend').textContent='กำลังตรวจสอบ…'; fgMsg('กำลังค้นหาอีเมลที่บันทึกไว้…','info'); fgDiag('');
-  api({action:'lookupUser',user:u}).then(function(res){
-    $('fgSend').disabled=false; $('fgSend').textContent='ถัดไป';
-    if(!res||!res.ok){ fgMsg((res&&res.message)||'ตรวจสอบข้อมูลไม่สำเร็จ','err'); return; }
-    fgMsg('','');
-    openConfirm(u,res);
-  }).catch(function(err){
-    $('fgSend').disabled=false; $('fgSend').textContent='ถัดไป';
-    fgMsg('เรียก Apps Script ไม่ได้ ('+err.message+')','err');
-    fgDiag('ตรวจสอบว่า Deploy เวอร์ชันล่าสุดแล้ว และตั้ง Who has access เป็น Anyone');
-  });
-});
-
-/* ขั้นที่ 2 — popup ยืนยัน/ยกเลิก */
+/* ---------- ลืมรหัสผ่าน: เด้ง popup ทันทีจากหน้า login ---------- */
 var CF_USER='';
+function cfOpen(){ $('cfmodal').style.display='flex'; }
+function cfClose(){ $('cfmodal').style.display='none'; }
+function cfRender(title,body,btns){
+  $('cfTitle').textContent=title;
+  $('cfBody').innerHTML=body;
+  $('cfBtns').innerHTML=btns.map(function(b){
+    return '<button type="button" class="'+b[2]+'" id="'+b[0]+'"'+(b[3]||'')+'>'+esc(b[1])+'</button>';
+  }).join('');
+}
 function mailLinks(list){
   return '<div class="maillist">'+list.map(function(e){
     return '<div>• <a href="mailto:'+esc(e)+'">'+esc(e)+'</a></div>';
   }).join('')+'</div>';
 }
-function openConfirm(user,res){
-  CF_USER=user;
+function cfWho(res,fallback){
+  return '<div class="who">ผู้ใช้งาน: <b>'+esc(res.name||res.account||fallback)+'</b>'+
+         (res.account?(' ('+esc(res.account)+')'):'')+'</div>';
+}
+/* กดปุ่ม "ลืมรหัสผ่าน?" ที่หน้า login — เปิด popup ทันที */
+$('fgOpen').addEventListener('click',function(){
+  CF_USER=$('u').value.trim();
+  cfOpen();
+  if(!API_URL){
+    cfRender('ลืมรหัสผ่าน','<div class="msg err" style="display:block">ยังไม่ได้ตั้งค่า API_URL ในไฟล์ index.html จึงยังใช้งานไม่ได้</div>',
+      [['cfCancel','ปิด','btn-primary',' style="flex:1"']]);
+    $('cfCancel').addEventListener('click',cfClose);
+    return;
+  }
+  if(CF_USER) cfLookup(CF_USER); else cfAskUser('');
+});
+/* ยังไม่ได้กรอกชื่อผู้ใช้ที่หน้า login — ให้กรอกใน popup */
+function cfAskUser(err){
+  cfRender('ลืมรหัสผ่าน',
+    '<p class="sub">กรอกชื่อผู้ใช้งาน ระบบจะแสดงอีเมลที่บันทึกไว้ให้ยืนยันก่อน แล้วจึงตั้งรหัสผ่านใหม่และส่งไปให้</p>'+
+    '<div class="field"><label for="cfUser">ผู้ใช้งาน (รหัส Vendor หรือชื่อผู้ใช้)</label><input id="cfUser" type="text" autocomplete="username"></div>'+
+    (err?('<div class="msg err" style="display:block">'+esc(err)+'</div>'):''),
+    [['cfCancel','ยกเลิก','btn-ghost'],['cfNext','ตรวจสอบอีเมล','btn-primary']]);
+  $('cfUser').value=CF_USER;
+  $('cfCancel').addEventListener('click',cfClose);
+  $('cfNext').addEventListener('click',function(){
+    var u=$('cfUser').value.trim();
+    if(!u){ cfAskUser('กรุณากรอกชื่อผู้ใช้งาน'); return; }
+    CF_USER=u; cfLookup(u);
+  });
+  $('cfUser').addEventListener('keydown',function(e){ if(e.key==='Enter'){ e.preventDefault(); $('cfNext').click(); } });
+  setTimeout(function(){ $('cfUser').focus(); },60);
+}
+/* ขั้นที่ 1 — อ่านอีเมลที่บันทึกไว้ (ยังไม่เปลี่ยนรหัส ยังไม่ส่งอีเมล) */
+function cfLookup(u){
+  cfRender('ลืมรหัสผ่าน','<div style="display:flex;align-items:center;gap:11px;padding:6px 0">'+
+    '<div class="spin" style="margin:0"></div><div style="font-size:13.5px;color:#64748b">กำลังค้นหาอีเมลที่บันทึกไว้ของ '+esc(u)+'…</div></div>',
+    [['cfCancel','ยกเลิก','btn-ghost',' style="flex:1"']]);
+  $('cfCancel').addEventListener('click',cfClose);
+  api({action:'lookupUser',user:u}).then(function(res){
+    if(!res||!res.ok){ cfAskUser((res&&res.message)||'ตรวจสอบข้อมูลไม่สำเร็จ'); return; }
+    cfConfirm(res);
+  }).catch(function(err){
+    cfAskUser('เรียก Apps Script ไม่ได้ ('+err.message+') — ตรวจสอบว่า Deploy เวอร์ชันล่าสุดแล้ว');
+  });
+}
+/* ขั้นที่ 2 — แสดงข้อมูลให้ยืนยัน */
+function cfConfirm(res){
   var list=(res.emails&&res.emails.length)?res.emails:(res.masked||[]);
-  $('cfTitle').textContent='ยืนยันการตั้งรหัสผ่านใหม่';
-  $('cfBody').innerHTML=
-    '<div class="who">ผู้ใช้งาน: <b>'+esc(res.name||res.account||user)+'</b>'+
-    (res.account?(' ('+esc(res.account)+')'):'')+'</div>'+
+  cfRender('ยืนยันการตั้งรหัสผ่านใหม่',
+    cfWho(res,CF_USER)+
     '<div style="margin-top:9px;font-size:13.5px">ส่งรหัสผ่านใหม่ไปที่อีเมลที่บันทึกไว้ '+nf(res.count||list.length)+' อีเมล:</div>'+
     mailLinks(list)+
     '<div class="warn">เมื่อกดยืนยัน ระบบจะตั้งรหัสผ่านใหม่ให้ทันที <b>รหัสผ่านเดิมจะใช้ไม่ได้อีก</b> '+
-    'และมีผลกับทุกเว็บแอปที่ใช้บัญชีชุดนี้</div>';
-  $('cfBtns').innerHTML='<button type="button" class="btn-ghost" id="cfCancel">ยกเลิก</button>'+
-    '<button type="button" class="btn-primary" id="cfOk">ยืนยัน</button>';
-  $('cfCancel').addEventListener('click',closeConfirm);
-  $('cfOk').addEventListener('click',doReset);
-  $('cfmodal').style.display='flex';
+    'และมีผลกับทุกเว็บแอปที่ใช้บัญชีชุดนี้</div>',
+    [['cfCancel','ยกเลิก','btn-ghost'],['cfOk','ยืนยัน','btn-primary']]);
+  $('cfCancel').addEventListener('click',cfClose);
+  $('cfOk').addEventListener('click',function(){ cfDoReset(res); });
 }
-function closeConfirm(){ $('cfmodal').style.display='none'; }
-$('cfmodal').addEventListener('click',function(e){ if(e.target===this) closeConfirm(); });
-function doReset(){
-  var btn=$('cfOk');
-  btn.disabled=true; btn.textContent='กำลังดำเนินการ…';
-  var cancel=$('cfCancel'); if(cancel) cancel.disabled=true;
+/* ขั้นที่ 3 — ตั้งรหัสใหม่ เขียนลงชีต แล้วส่งอีเมล */
+function cfDoReset(info){
+  var ok=$('cfOk'), cancel=$('cfCancel');
+  ok.disabled=true; ok.textContent='กำลังดำเนินการ…'; if(cancel) cancel.disabled=true;
   api({action:'forgotPassword',user:CF_USER}).then(function(res){
     if(!res||!res.ok){
-      btn.disabled=false; btn.textContent='ยืนยัน'; if(cancel) cancel.disabled=false;
+      ok.disabled=false; ok.textContent='ยืนยัน'; if(cancel) cancel.disabled=false;
       $('cfBody').innerHTML += '<div class="msg err" style="display:block;margin-top:11px">'+
         esc((res&&res.message)||'ตั้งรหัสผ่านใหม่ไม่สำเร็จ')+'</div>';
       return;
     }
-    var list=(res.emails&&res.emails.length)?res.emails:(res.masked||[]);
-    $('cfTitle').textContent='ตั้งรหัสผ่านใหม่เรียบร้อย';
-    $('cfBody').innerHTML=
-      '<div class="who">ผู้ใช้งาน: <b>'+esc(res.name||res.account||CF_USER)+'</b>'+
-      (res.account?(' ('+esc(res.account)+')'):'')+'</div>'+
+    var list=(res.emails&&res.emails.length)?res.emails:(res.masked||(info&&info.emails)||[]);
+    cfRender('ตั้งรหัสผ่านใหม่เรียบร้อย',
+      cfWho(res.account?res:(info||{}),CF_USER)+
       '<div style="margin-top:9px;font-size:13.5px">ส่งรหัสผ่านใหม่ไปที่อีเมลที่บันทึกไว้ '+nf(res.count||list.length)+' อีเมลแล้ว:</div>'+
       mailLinks(list)+
       '<div class="warn">รหัสผ่านเดิมใช้ไม่ได้แล้ว เข้าสู่ระบบด้วยรหัสใหม่ในอีเมล แล้วกด "เปลี่ยนรหัสผ่าน" เพื่อตั้งรหัสที่จำได้เอง'+
-      '<br>ถ้าไม่พบอีเมลภายใน 2–3 นาที ลองตรวจในกล่อง Junk/Spam</div>';
-    $('cfBtns').innerHTML='<button type="button" class="btn-primary" id="cfClose" style="flex:1">ปิด</button>';
-    $('cfClose').addEventListener('click',function(){ closeConfirm(); $('fgmodal').style.display='none'; });
+      '<br>ถ้าไม่พบอีเมลภายใน 2–3 นาที ลองตรวจในกล่อง Junk/Spam</div>',
+      [['cfClose','ปิด','btn-primary',' style="flex:1"']]);
+    $('cfClose').addEventListener('click',cfClose);
     var saved=localStorage.getItem(LS_KEY);
     if(saved){
       try{
@@ -1383,10 +1387,11 @@ function doReset(){
       }catch(e){}
     }
   }).catch(function(err){
-    btn.disabled=false; btn.textContent='ยืนยัน'; if(cancel) cancel.disabled=false;
+    ok.disabled=false; ok.textContent='ยืนยัน'; if(cancel) cancel.disabled=false;
     $('cfBody').innerHTML += '<div class="msg err" style="display:block;margin-top:11px">เรียก Apps Script ไม่ได้ ('+esc(err.message)+')</div>';
   });
 }
+$('cfmodal').addEventListener('click',function(e){ if(e.target===this) cfClose(); });
 
 /* =========================================================================
    8) เริ่มระบบ
