@@ -419,9 +419,24 @@ function jsonpUsers(sheetName){
   });
 }
 /* ไล่ลองทีละวิธีจนกว่าจะสำเร็จ */
+/* อ่านรายชื่อผู้ใช้ผ่าน Apps Script — ได้ครบทุกแถว ไม่โดน gviz เดาชนิดข้อมูลจนชื่อผู้ใช้ที่เป็นตัวอักษรหาย */
+function apiUsersList(){
+  return api({action:'users'}).then(function(res){
+    if(!res||!res.ok||!res.users||!res.users.length) throw new Error((res&&res.message)||'ไม่ได้รายชื่อผู้ใช้');
+    var out=[];
+    res.users.forEach(function(x){
+      var u=txt(x.user); if(!u) return;
+      out.push({name:txt(x.name), user:u, pass:txt(x.pass), status:txt(x.status).toUpperCase()});
+    });
+    if(!out.length) throw new Error('ไม่พบผู้ใช้ที่มีรหัสผู้ใช้');
+    LOADLOG.push('✓ Apps Script (action=users) — '+out.length+' รายการ');
+    return out;
+  }).catch(function(e){ LOADLOG.push('✗ Apps Script (action=users) — '+e.message); throw e; });
+}
 function loadRemoteUsers(){
   var b='https://docs.google.com/spreadsheets/d/'+USER_SHEET;
   var tries=[];
+  if(API_URL) tries.push(function(){ return apiUsersList(); });
   if(USER_CSV_URL) tries.push(function(){ return fetchCSVUsers(USER_CSV_URL,'CSV เผยแพร่ (ที่ตั้งค่าไว้)'); });
   tries.push(function(){ return fetchCSVUsers(b+'/gviz/tq?tqx=out:csv&headers=1','CSV gviz'); });
   tries.push(function(){ return fetchCSVUsers(b+'/gviz/tq?tqx=out:csv&headers=1&sheet=User','CSV gviz (sheet=User)'); });
@@ -1552,7 +1567,7 @@ function resetEyes(ids){
   }).catch(function(){ localDone=true; if(remoteDone&&!USERS.length) fail(); });
 
   loadRemoteUsers().then(function(us){
-    remoteDone=true; gotUsers(us,'กูเกิลชีต');
+    remoteDone=true; gotUsers(us, (LOADLOG.length&&LOADLOG[LOADLOG.length-1].indexOf('Apps Script')>=0)?'Apps Script':'กูเกิลชีต');
   }).catch(function(){ remoteDone=true; if(localDone&&!USERS.length) fail(); });
 })();
 </script>
