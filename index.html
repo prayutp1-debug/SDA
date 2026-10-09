@@ -244,7 +244,7 @@ td.day{text-align:center;padding:6px 2px;font-size:11px;min-width:26px;max-width
       <span class="chip" id="whoChip">—</span>
       <span class="chip" id="roleChip">—</span>
       <button class="btn-ghost" id="pwOpenApp">เปลี่ยนรหัสผ่าน</button>
-      <button class="btn-ghost" id="reloadBtn" title="โหลดข้อมูลจากไฟล์ใหม่">โหลดใหม่</button>
+      <button class="btn-ghost" id="reloadBtn" title="โหลดข้อมูลจากไฟล์ใหม่" style="display:none">โหลดใหม่</button>
       <button class="btn-ghost" id="logoutBtn">ออกจากระบบ</button>
     </div>
   </header>
@@ -309,6 +309,7 @@ var USER_CSV_URL = '';        // (แนะนำ) ลิงก์ CSV จาก
 var LOCAL_CSV    = 'users.csv';   // สำรอง: ไฟล์ CSV ของชีต User วางโฟลเดอร์เดียวกับ index.html
 var API_URL      = 'https://script.google.com/macros/s/AKfycbw6vA73LZOb0xS2Vx-rTGTgQcr0vL4PGP_VKLORuGdnWelgydS3Zo090QDLiqj9_lQN/exec';  // Apps Script (Code.gs) — ใช้ login + เปลี่ยนรหัสผ่าน
 var LS_KEY       = 'sdaTrainingAuth_v2';
+var RELOAD_USERS = ['sirilukt'];   // ผู้ใช้ที่เห็นปุ่ม "โหลดใหม่" (เพิ่มชื่อผู้ใช้อื่นได้ คั่นด้วยจุลภาค)
 
 /* =========================================================================
    Utilities
@@ -1237,6 +1238,8 @@ function startSession(u){
   $('whoChip').textContent=SESSION.name;
   $('roleChip').textContent = SESSION.all? 'SCG — ดูได้ทุกผู้รับเหมา' : 'ผู้รับเหมา — เห็นเฉพาะข้อมูลของตนเอง';
   $('roleChip').className='chip '+(SESSION.all?'scg':'vender');
+  var canReload = RELOAD_USERS.some(function(x){ return normUser(x)===normUser(SESSION.code); });
+  $('reloadBtn').style.display = canReload? '' : 'none';
   STATE.tab='sda';
   $('login').style.display='none';
   $('app').style.display='block';
