@@ -310,6 +310,7 @@ var LOCAL_CSV    = 'users.csv';   // สำรอง: ไฟล์ CSV ของ
 var API_URL      = 'https://script.google.com/macros/s/AKfycbw6vA73LZOb0xS2Vx-rTGTgQcr0vL4PGP_VKLORuGdnWelgydS3Zo090QDLiqj9_lQN/exec';  // Apps Script (Code.gs) — ใช้ login + เปลี่ยนรหัสผ่าน
 var LS_KEY       = 'sdaTrainingAuth_v2';
 var RELOAD_USERS = ['sirilukt'];   // ผู้ใช้ที่เห็นปุ่ม "โหลดใหม่" (เพิ่มชื่อผู้ใช้อื่นได้ คั่นด้วยจุลภาค)
+var SDA_TAB_USERS = ['sirilukt'];  // ผู้ใช้ที่เห็นแท็บ "การใช้ SDA" (ว่าง [] = ทุกคนเห็น)
 
 /* =========================================================================
    Utilities
@@ -1046,9 +1047,20 @@ function render(){
   else renderReg(rows);
   renderTabbar();
 }
+function allowUser(list){
+  if(!list||!list.length) return true;
+  if(!SESSION) return false;
+  return list.some(function(x){ return normUser(x)===normUser(SESSION.code); });
+}
+function visibleTabs(){
+  return Object.keys(TABS).filter(function(k){
+    if(k==='sda') return allowUser(SDA_TAB_USERS);
+    return true;
+  });
+}
 function renderTabbar(){
   var html='';
-  Object.keys(TABS).forEach(function(k){
+  visibleTabs().forEach(function(k){
     var n=scoped(DATA[TABS[k].sheet]||[]).length;
     html+='<button data-tab="'+k+'" class="'+(STATE.tab===k?'on':'')+'">'+TABS[k].label+'<small>'+nf(n)+'</small></button>';
   });
@@ -1238,9 +1250,9 @@ function startSession(u){
   $('whoChip').textContent=SESSION.name;
   $('roleChip').textContent = SESSION.all? 'SCG — ดูได้ทุกผู้รับเหมา' : 'ผู้รับเหมา — เห็นเฉพาะข้อมูลของตนเอง';
   $('roleChip').className='chip '+(SESSION.all?'scg':'vender');
-  var canReload = RELOAD_USERS.some(function(x){ return normUser(x)===normUser(SESSION.code); });
-  $('reloadBtn').style.display = canReload? '' : 'none';
-  STATE.tab='sda';
+  $('reloadBtn').style.display = allowUser(RELOAD_USERS)? '' : 'none';
+  var tabs=visibleTabs();
+  STATE.tab = tabs.indexOf('sda')>=0? 'sda' : (tabs[0]||'training');
   $('login').style.display='none';
   $('app').style.display='block';
   afterData();
