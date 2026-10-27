@@ -623,10 +623,37 @@ function applyFilters(rows,skipKey){
     return true;
   });
 }
+/* ลำดับเดือน — ใช้ทั้งการเรียงตัวเลือกและการเลือกเดือนล่าสุดเป็นค่าเริ่มต้น */
+var MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+var MONTHS_TH=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+function monthIndex(v){
+  var s=txt(v); if(!s) return -1;
+  var k=s.slice(0,3).toLowerCase();
+  for(var i=0;i<MONTHS.length;i++){ if(MONTHS[i].toLowerCase()===k) return i; }
+  for(var j=0;j<MONTHS_TH.length;j++){ if(s.indexOf(MONTHS_TH[j])===0) return j; }
+  var n=parseInt(s,10);                       // รองรับเดือนที่เก็บเป็นตัวเลข 1–12
+  if(!isNaN(n)&&n>=1&&n<=12&&/^\d{1,2}$/.test(s)) return n-1;
+  return -1;
+}
+function isMonthKey(key){ return key==='เดือน'||key==='Month'; }
 function optionsFor(key){
   var rows=applyFilters(baseRows(),key), set={};
   rows.forEach(function(r){ var v=txt(r[key]); if(v) set[v]=1; });
-  return Object.keys(set).sort(function(a,b){ return a.localeCompare(b,'th'); });
+  var list=Object.keys(set);
+  if(isMonthKey(key)){
+    return list.sort(function(a,b){
+      var ia=monthIndex(a), ib=monthIndex(b);
+      if(ia>=0&&ib>=0) return ia-ib;          // เรียงตามลำดับเดือนจริง
+      if(ia>=0) return -1;
+      if(ib>=0) return 1;
+      return a.localeCompare(b,'th');
+    });
+  }
+  return list.sort(function(a,b){
+    var na=parseFloat(a), nb=parseFloat(b);   // คอลัมน์ตัวเลข (ปี, ขนาดโม่, อายุรถ) เรียงแบบตัวเลข
+    if(!isNaN(na)&&!isNaN(nb)&&String(na)===a&&String(nb)===b) return na-nb;
+    return a.localeCompare(b,'th');
+  });
 }
 function renderFilters(){
   var cfg=TABS[STATE.tab], host=$('filters'), html='';
@@ -653,11 +680,10 @@ function defaultPeriod(){
     if(STATE.f[k]) return;
     var vals=optionsFor(k);
     if(vals.length===1) STATE.f[k]=vals[0];
-    else if(k==='เดือน'||k==='Month'){
-      var order=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    else if(isMonthKey(k)){
       var best=null,bi=-1;
-      vals.forEach(function(v){ var i=order.indexOf(v); if(i>bi){bi=i;best=v;} });
-      if(best) STATE.f[k]=best;
+      vals.forEach(function(v){ var i=monthIndex(v); if(i>bi){bi=i;best=v;} });
+      if(best) STATE.f[k]=best;               // ค่าเริ่มต้น = เดือนล่าสุดที่มีข้อมูล
     }
   });
 }
